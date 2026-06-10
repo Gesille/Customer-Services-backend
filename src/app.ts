@@ -16,7 +16,7 @@ app.get('/health', (req, res) => {
 });
 
 // Routes
-app.use('/api', routes);
+app.use('/api/v1', routes);
 
 // Not found
 app.use(notFoundMiddleware);
