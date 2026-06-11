@@ -25,21 +25,21 @@ export class QrController {
     }
   }
 
-  async getPrintPage(req: Request, res: Response): Promise<void> {
-    try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) { res.status(400).send('Invalid restaurant ID'); return; }
+ async getPrintPage(req: Request, res: Response): Promise<void> {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) { res.status(400).send('Invalid restaurant ID'); return; }
 
-      const { dataUrl, restaurant, feedbackUrl } = await qrService.generateQrDataUrl(id);
-      const html = buildPrintHtml(restaurant.x_name, restaurant.x_location, dataUrl, feedbackUrl);
+    const { dataUrl, restaurant, feedbackUrl } = await qrService.generateQrDataUrl(id);
+    const html = buildPrintHtml(restaurant.x_name, restaurant.x_location, dataUrl, feedbackUrl);
 
-      res.setHeader('Content-Type', 'text/html');
-      res.status(200).send(html);
-    } catch (err: any) {
-      const status = err.message === 'Restaurant not found' ? 404 : 500;
-      res.status(status).send(err.message);
-    }
+    res.setHeader('Content-Type', 'text/html');
+    res.status(200).send(html);
+  } catch (err: any) {
+    const status = err.message === 'Restaurant not found' ? 404 : 500;
+    res.status(status).send(err.message);
   }
+}
 
   async resolveToken(req: Request, res: Response): Promise<void> {
     try {
