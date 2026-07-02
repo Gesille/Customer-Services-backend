@@ -1,10 +1,13 @@
 import app from './app';
 import { ENV } from './config/env';
+import connectDB from './utils/db';
 
 const PORT = Number(ENV.PORT) || 8000;
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Health check: http://localhost:${PORT}/health`);
-  console.log(`API base: http://localhost:${PORT}/api`);
+connectDB().then(() => {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Health check: http://localhost:${PORT}/health`);
+    console.log(`API base: http://localhost:${PORT}/api`);
+  });
 });
