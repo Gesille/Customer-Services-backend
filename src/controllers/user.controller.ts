@@ -1,29 +1,31 @@
 import { Request, Response, NextFunction } from "express";
 
-
+import { CatchAsyncError } from "../middleware/catchAsyncError";
 import jwt, { JwtPayload, Secret } from "jsonwebtoken";
-import ejs from "ejs";
-import path from "path";
 
-import cloudinary from "cloudinary";
+import sendMail from "../utils/sendMail";
+
 import {
+ 
   accessTokenOptions,
   refreshTokenOptions,
   sendToken,
 } from "../utils/jwt";
 
+import {
+  getAllUsersService,
+  getUserById,
+  updateUserRoleService,
+} from "../services/user.service";
 
-import sendMail from "../utils/sendMail";
+import dotenv from "dotenv";
 import userModel, { IUser } from "../models/user.model";
-import { CatchAsyncError } from "../middleware/catchAsyncError";
+import cloudinary from "cloudinary";
+import mongoose from "mongoose";
 import ErrorHandler from "../middleware/ErrorHandler";
-import { getAllUsersService, getUserById, updateUserRoleService } from "../services/user.service";
+import { odooRequest } from "../odoo/odoo-client";
 
-
-
-require("dotenv").config();
-
-
+dotenv.config();
 
 //register user
 interface IRegistrationBody {
@@ -31,13 +33,17 @@ interface IRegistrationBody {
   email: string;
   password: string;
   avatar?: string;
-  role:string
+  role: string;
 }
 
 export const registrationUser = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { name, email, password ,role = "user"} = req.body;
+      const { name, email, password, role = "user" } = req.body;
+      if (!name || !email || !password) {
+        return next(new ErrorHandler("All fields are required", 400));
+      }
+
       const isEmailExist = await userModel.findOne({ email });
       if (isEmailExist) {
         return next(new ErrorHandler("Email is already exist", 400));
@@ -52,10 +58,6 @@ export const registrationUser = CatchAsyncError(
       const activationCode = activationToken.activationCode;
       const data = { user: { name: user.name }, activationCode };
 
-      const html = await ejs.renderFile(
-        path.join(__dirname, "../mails/activation-mail.ejs"),
-        data
-      );
       try {
         await sendMail({
           email: user.email,
@@ -74,10 +76,8 @@ export const registrationUser = CatchAsyncError(
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
     }
-  }
+  },
 );
-
-
 
 interface IActivationToken {
   token: string;
@@ -92,10 +92,10 @@ export const createActivationToken = (user: any): IActivationToken => {
       user,
       activationCode,
     },
-    process.env.ACTIVITION_SECRET as Secret,
+    process.env.ACTIVATION_SECRET as Secret,
     {
       expiresIn: "5m",
-    }
+    },
   );
   return { token, activationCode };
 };
@@ -108,15 +108,13 @@ interface IActivationRequest {
 export const activateUser = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-  
-      console.log("Request Body:", req.body);
-
       const { activation_code, activation_token } =
         req.body as IActivationRequest;
 
-    
       if (!activation_token || !activation_code) {
-        return next(new ErrorHandler("Activation token and code are required", 400));
+        return next(
+          new ErrorHandler("Activation token and code are required", 400),
+        );
       }
 
       const newUser: {
@@ -124,7 +122,7 @@ export const activateUser = CatchAsyncError(
         activationCode: string;
       } = jwt.verify(
         activation_token,
-        process.env.ACTIVITION_SECRET as string
+        process.env.ACTIVATION_SECRET as string,
       ) as { user: IUser; activationCode: string };
 
       if (newUser.activationCode !== activation_code) {
@@ -138,23 +136,48 @@ export const activateUser = CatchAsyncError(
         return next(new ErrorHandler("Email is already exist", 400));
       }
 
+      //  create user first
       const user = await userModel.create({
         name,
         email,
         password,
       });
 
+      let partnerId: number;
+
+      try {
+        //create partner in Odoo
+        partnerId = await odooRequest("res.partner", "create", [
+          {
+            name: user.name,
+            email: user.email,
+          },
+        ]);
+      } catch (err) {
+        console.error("❌ Odoo error:", err);
+
+        // 🔥 IMPORTANT: rollback user
+        await user.deleteOne();
+
+        return next(new ErrorHandler("Failed to sync with Odoo", 500));
+      }
+
+      // save partner id
+      user.odooPartnerId = Number(partnerId);
+      await user.save();
+
       res.status(201).json({
         success: true,
+        message: "User activated and synced with Odoo",
       });
     } catch (error: any) {
       console.error("Activation Error:", error);
-      return next(new ErrorHandler(error.message || "Something went wrong", 400));
+      return next(
+        new ErrorHandler(error.message || "Something went wrong", 400),
+      );
     }
-  }
+  },
 );
-
-
 
 //login user
 interface ILoginRequest {
@@ -168,7 +191,7 @@ export const loginUser = CatchAsyncError(
 
       if (!email || !password) {
         return next(
-          new ErrorHandler("Please enter your email and password ", 400)
+          new ErrorHandler("Please enter your email and password ", 400),
         );
       }
       const user = await userModel.findOne({ email }).select("+password");
@@ -181,24 +204,23 @@ export const loginUser = CatchAsyncError(
       if (!isPasswordMatch) {
         return next(new ErrorHandler("Invalid email or password", 400));
       }
-      
 
       sendToken(user, 200, res);
       user.save();
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
     }
-  }
+  },
 );
 
 //logout user
 export const logoutUser = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      res.cookie("access_token", "", { maxAge: 1 });
+      res.cookie("ACCESS_TOKEN_SECRET", "", { maxAge: 1 });
       res.cookie("refresh_token", "", { maxAge: 1 });
       const userId = req.user?._id || "";
-      await userModel.findByIdAndDelete(userId);
+      
       res.status(200).json({
         success: true,
         message: "Logged out is successfully",
@@ -206,88 +228,82 @@ export const logoutUser = CatchAsyncError(
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
     }
-  }
+  },
 );
 
 //update access token
-export const updateAccessToken = CatchAsyncError(
+export const refreshTokenMiddleware = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-     
       const refresh_token = req.cookies.refresh_token as string;
+
+      if (!refresh_token) {
+        return next(new ErrorHandler("Please login to access this resource", 401));
+      }
+
       const decoded = jwt.verify(
         refresh_token,
         process.env.REFRESH_TOKEN as string
       ) as JwtPayload;
 
-      const message = "Could not refresh token";
-      if (!decoded) {
-        return next(new ErrorHandler(message, 400));
-      }
-
       const user = await userModel.findById(decoded.id);
-
-      if (!user) {
-        return next(new ErrorHandler(message, 400));
-      }
-      const session = user;
+      if (!user) return next(new ErrorHandler("User not found", 404));
 
       const accessToken = jwt.sign(
         { id: user._id },
-        process.env.ACCESS_TOKEN as string,
-        {
-          expiresIn: "5m",
-        }
+        process.env.ACCESS_TOKEN_SECRET as string,
+        { expiresIn: "1h" }
       );
 
       const refreshToken = jwt.sign(
-        {
-          id: user._id,
-        },
+        { id: user._id },
         process.env.REFRESH_TOKEN as string,
-        {
-          expiresIn: "3d",
-        }
+        { expiresIn: "3d" }
       );
 
-      req.user = user;
-
-      res.cookie("access_token", accessToken, accessTokenOptions);
+      res.cookie("ACCESS_TOKEN_SECRET", accessToken, accessTokenOptions);
       res.cookie("refresh_token", refreshToken, refreshTokenOptions);
 
-     next();
+      req.user = user; // ✅ attach user for downstream
+      next(); // ✅ always continue
+
     } catch (error: any) {
-      return next(new ErrorHandler(error.message, 400));
+      return next(new ErrorHandler(error.message, 401));
     }
   }
 );
 
-//update user info
-interface IUpdateUserInfo {
-  name?: string;
-  email?: string;
-}
-
+// ✅ standalone route — uses middleware then sends response
+export const updateAccessToken = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    return res.status(200).json({
+      success: true,
+      accessToken: req.cookies.ACCESS_TOKEN_SECRET,
+    });
+  }
+);
+// update user info
 export const updateUserInfo = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { name } = req.body as IUpdateUserInfo;
+      const { name, phone } = req.body;
+
       const userId = req.user?._id;
+
       const user = await userModel.findById(userId);
 
       if (!user) {
         return next(new ErrorHandler("User not found", 404));
       }
 
-      
+      if (name) user.name = name;
+      if (phone) user.phone = phone;
 
-      if (name && user) {
-        user.name = name;
-      }
-      await user?.save();
-      await userModel.findByIdAndUpdate(userId, user);
 
-      res.status(201).json({
+
+      await user.save();
+
+      res.status(200).json({
         success: true,
         user,
       });
@@ -296,41 +312,39 @@ export const updateUserInfo = CatchAsyncError(
     }
   }
 );
-
 //get user Info
-
 export const getUserInfo = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user?._id;
+
       if (!userId) {
-        return next(new ErrorHandler("User not found", 404));
+        return next(new ErrorHandler("User not authenticated", 400));
       }
+
       getUserById(userId.toString(), res);
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
     }
-  }
+  },
 );
-
 // social auth
+
 interface ISocialAuthBody {
   email: string;
   name: string;
-  avatar: string;
+  avatar: {
+    public_id: string;
+    url: string;
+  };
 }
-
 export const socialAuth = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { email, name, avatar } = req.body as ISocialAuthBody;
       const user = await userModel.findOne({ email });
       if (!user) {
-        const newUser = await userModel.create({
-          email,
-          name,
-          avatar: avatar ? { public_id: "", url: avatar } : undefined,
-        });
+        const newUser = await userModel.create({ email, name, avatar });
         sendToken(newUser, 200, res);
       } else {
         sendToken(user, 200, res);
@@ -338,7 +352,7 @@ export const socialAuth = CatchAsyncError(
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
     }
-  }
+  },
 );
 
 //update user password
@@ -354,7 +368,7 @@ export const updatePassword = CatchAsyncError(
 
       if (!oldPassword || !newPassword) {
         return next(
-          new ErrorHandler("Please inter your old and new password", 400)
+          new ErrorHandler("Please inter your old and new password", 400),
         );
       }
 
@@ -382,14 +396,12 @@ export const updatePassword = CatchAsyncError(
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
     }
-  }
+  },
 );
 
 //update profile picture
 
-interface IUpdateProfilePicture {
-  avatar: string;
-}
+
 
 export const updateProfilePicture = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -399,33 +411,24 @@ export const updateProfilePicture = CatchAsyncError(
       const user = await userModel.findById(userId);
 
       if (avatar && user) {
-        //if user have an avatar then call this
+        
         if (user?.avatar?.public_id) {
-          //first delete the old image
-          await cloudinary.v2.uploader.destroy(user?.avatar?.public_id);
-          const myCloud = await cloudinary.v2.uploader.upload(avatar, {
-            folder: "avatars",
-            width: 150,
-          });
-          user.avatar = {
-            public_id: myCloud.public_id,
-            url: myCloud.secure_url,
-          };
-        } else {
-          const myCloud = await cloudinary.v2.uploader.upload(avatar, {
-            folder: "avatars",
-            width: 150,
-          });
-          user.avatar = {
-            public_id: myCloud.public_id,
-            url: myCloud.secure_url,
-          };
+          await cloudinary.v2.uploader.destroy(user.avatar.public_id);
         }
+
+        // Upload new avatar
+        const myCloud = await cloudinary.v2.uploader.upload(avatar, {
+          folder: "avatars",
+          width: 150,
+        });
+
+        user.avatar = {
+          public_id: myCloud.public_id,
+          url: myCloud.secure_url,
+        };
       }
 
       await user?.save();
-
-      await userModel.findByIdAndUpdate(userId, { user });
 
       res.status(201).json({
         success: true,
@@ -437,48 +440,53 @@ export const updateProfilePicture = CatchAsyncError(
   }
 );
 
-        
+
 //get all users === only for admin
 export const getAllUsers = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-
       const userRole = req.user?.role;
 
-      if (userRole !== 'admin') {
-        return next(new ErrorHandler("You are not authorized to view all users", 403));
+      if (userRole !== "admin") {
+        return next(
+          new ErrorHandler("You are not authorized to view all users", 403),
+        );
       }
       getAllUsersService(res);
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
     }
-  }
+  },
 );
 
-//update user role == only for admin
+// update user role === only for admin
 export const updateUserRole = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userRole = req.user?.role;
 
-      if (userRole !== 'admin') {
-        return next(new ErrorHandler("You are not authorized to update user roles", 403));
+      if (userRole !== "admin") {
+        return next(
+          new ErrorHandler("You are not authorized to update user roles", 403),
+        );
       }
-      const { email, role } = req.body;
-      const isUserExist = await userModel.findOne({ email });
-      if (isUserExist) {
-        const id = isUserExist._id.toString();
-        updateUserRoleService(res, id, role);
-      } else {
-        res.status(400).json({
+
+      const { id, role } = req.body;
+
+      const isUserExist = await userModel.findById(id);
+
+      if (!isUserExist) {
+        return res.status(400).json({
           success: false,
           message: "User Not Found",
         });
       }
+
+      await updateUserRoleService(res, id.toString(), role);
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
     }
-  }
+  },
 );
 
 //Delete user === only admin
@@ -487,8 +495,10 @@ export const deleteUser = CatchAsyncError(
     try {
       const userRole = req.user?.role;
 
-      if (userRole !== 'admin') {
-        return next(new ErrorHandler("You are not authorized to delete users", 403));
+      if (userRole !== "admin") {
+        return next(
+          new ErrorHandler("You are not authorized to delete users", 403),
+        );
       }
       const { id } = req.params;
       const user = await userModel.findById(id);
@@ -503,18 +513,24 @@ export const deleteUser = CatchAsyncError(
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
     }
-  }
+  },
 );
 
 
-// الوصول إلى المستخدم بناءً على دوره
-export const checkUserRole = (role: string) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const userRole = req.user?.role;  // جلب الدور من المستخدم
-    if (userRole !== role) {
-      return next(new ErrorHandler("You are not authorized", 403));
-    }
-    next();
-  };
-};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
