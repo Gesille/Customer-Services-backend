@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { odooRequest } from '../shared/odoo-client';
+import { odooRequest } from '../odoo/odoo-client';
 import { ODOO_FIELDS, ODOO_MODELS } from '../config/odoo';
 import { CreateRestaurantDto, Restaurant } from '../models/restaurant.model';
 

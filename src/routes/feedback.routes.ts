@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { feedbackController } from '../controllers/feedback.controller';
-import { feedbackLimiter, readLimiter } from '../shared/middleware';
+import { feedbackLimiter, readLimiter } from '../middleware';
 
 export const feedbackRouter = Router();
  

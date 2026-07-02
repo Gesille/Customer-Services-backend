@@ -1,4 +1,4 @@
-import { odooRequest }      from '../shared/odoo-client';
+import { odooRequest }      from '../odoo/odoo-client';
 import { ODOO_MODELS, ODOO_FIELDS } from '../config/odoo';
 
 import { restaurantService } from './restaurant.service';

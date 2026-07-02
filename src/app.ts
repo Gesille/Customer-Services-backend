@@ -5,7 +5,8 @@ import routes from './routes/index';
 import cookieParser from "cookie-parser";
 import { rateLimit } from 'express-rate-limit'
 import express,{NextFunction, Request, Response} from "express";
-import { ErrorMiddleware } from './dashoard/middleware/error';
+import { ErrorMiddleware } from './middleware/error';
+import userRouter from './routes/user.route';
 
 
 const app = express();
@@ -27,6 +28,7 @@ const limiter = rateLimit({
 })
 // Routes
 app.use('/api/v1', routes);
+app.use("/api/v1",userRouter);
 
 
 //unknoun route

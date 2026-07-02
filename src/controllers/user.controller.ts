@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import userModel, { IUser } from "../models/user.model";
 
-import { CatchAsyncError } from "../middleware/catchAsyncError";
+
 import jwt, { JwtPayload, Secret } from "jsonwebtoken";
 import ejs from "ejs";
 import path from "path";
@@ -13,13 +12,13 @@ import {
   sendToken,
 } from "../utils/jwt";
 
-import {
-  getAllUsersService,
-  getUserById,
-  updateUserRoleService,
-} from "../services/user.service";
-import ErrorHandler from "../../shared/middleware/ErrorHandler";
+
 import sendMail from "../utils/sendMail";
+import userModel, { IUser } from "../models/user.model";
+import { CatchAsyncError } from "../middleware/catchAsyncError";
+import ErrorHandler from "../middleware/ErrorHandler";
+import { getAllUsersService, getUserById, updateUserRoleService } from "../services/user.service";
+
 
 
 require("dotenv").config();
@@ -109,13 +108,13 @@ interface IActivationRequest {
 export const activateUser = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // عرض البيانات الواردة لفحص المشكلة
+  
       console.log("Request Body:", req.body);
 
       const { activation_code, activation_token } =
         req.body as IActivationRequest;
 
-      // تحقق من وجود القيم المطلوبة
+    
       if (!activation_token || !activation_code) {
         return next(new ErrorHandler("Activation token and code are required", 400));
       }

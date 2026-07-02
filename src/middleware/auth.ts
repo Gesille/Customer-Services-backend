@@ -4,7 +4,7 @@ import { CatchAsyncError } from "./catchAsyncError";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import userModel from "../models/user.model";
 import { updateAccessToken } from "../controllers/user.controller";
-import ErrorHandler from "../../shared/middleware/ErrorHandler";
+import ErrorHandler from "./ErrorHandler";
 
 
 

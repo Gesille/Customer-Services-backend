@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { restaurantController } from '../controllers/restaurant.controller';
 import { qrController } from '../controllers/Qr.controller';
-import { readLimiter } from '../shared/middleware';
+import { readLimiter } from '../middleware';
 
 const router = Router();
 

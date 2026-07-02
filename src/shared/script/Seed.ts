@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { v4 as uuidv4 }   from 'uuid';
-import { odooRequest } from '../odoo-client';
+import { odooRequest } from '../../odoo/odoo-client';
 
 
 async function seed(): Promise<void> {

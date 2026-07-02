@@ -1,5 +1,5 @@
 import type{ NextFunction, Request, Response } from "express";
-import ErrorHandler from "../../shared/middleware/ErrorHandler";
+import ErrorHandler from "./ErrorHandler";
 
 
 
