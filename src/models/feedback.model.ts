@@ -9,32 +9,62 @@ export type Recommendation =
 
 export interface Feedback {
   id: number;
-  x_restaurant_id:         number;
-  x_customer_name:         string;
-  x_waiter_name:           string;
-  x_friendliness_rating:   Rating;   // Q1: Excellent=4 Good=3 Fair=2 Poor=1
-  x_attentiveness_rating:  Rating;   // Q2: Very Satisfied=5 … Very Dissatisfied=1
-  x_menu_knowledge_rating: Rating;   // Q3: Yes completely=4 Mostly=3 Somewhat=2 No=1
-  x_service_speed_rating:  Rating;   // Q4: Excellent=4 Good=3 Fair=2 Poor=1
-  x_food_quality_rating:   Rating;   // kept from original schema
-  x_cleanliness_rating:    Rating;   // kept from original schema
-  x_overall_rating:        Rating;   // kept from original schema
-  x_recommendation:        Recommendation; // Q5: Very Likely → Very Unlikely
-  x_comment?:              string;
-  x_date:                  string;
+  x_restaurant_id:               number;
+  x_customer_name:               string;
+  x_customer_email:              string;
+  x_waiter_name:                 string;
+  // Waiter / Waitress
+  x_friendliness_rating:         Rating;
+  x_attentiveness_rating:        Rating;
+  x_menu_knowledge_rating:       Rating;
+  x_service_speed_rating:        Rating;
+  x_food_quality_rating:         Rating;
+  x_cleanliness_rating:          Rating;
+  x_overall_rating:              Rating;
+  // Bartender
+  x_bartender_friendliness_rating:    Rating;
+  x_bartender_drink_knowledge_rating: Rating;
+  x_bartender_speed_rating:           Rating;
+  x_bartender_welcome_rating:         Rating;
+  x_bartender_overall_rating:         Rating;
+  // Hostess
+  x_hostess_friendliness_rating:      Rating;
+  x_hostess_seating_rating:           Rating;
+  x_hostess_welcome_rating:           Rating;
+  x_hostess_communication_rating:     Rating;
+  x_hostess_overall_rating:           Rating;
+  // Common
+  x_recommendation:              Recommendation;
+  x_comment?:                    string;
+  x_date:                        string;
 }
 
 export interface CreateFeedbackDto {
-  restaurant_id:           number;
-  customer_name:           string;
-  waiter_name:             string;
-  friendliness_rating:     Rating;
-  attentiveness_rating:    Rating;
-  menu_knowledge_rating:   Rating;
-  service_speed_rating:    Rating;
-  food_quality_rating:     Rating;
-  cleanliness_rating:      Rating;
-  overall_rating:          Rating;
-  recommendation:          Recommendation;
-  comment?:                string;
+  restaurant_id:               number;
+  customer_name:               string;
+  customer_email:               string;
+  waiter_name:                 string;
+  // Waiter / Waitress
+  friendliness_rating:         Rating;
+  attentiveness_rating:        Rating;
+  menu_knowledge_rating:       Rating;
+  service_speed_rating:        Rating;
+  food_quality_rating:         Rating;
+  cleanliness_rating:          Rating;
+  overall_rating:              Rating;
+  // Bartender
+  bartender_friendliness_rating:    Rating;
+  bartender_drink_knowledge_rating: Rating;
+  bartender_speed_rating:           Rating;
+  bartender_welcome_rating:         Rating;
+  bartender_overall_rating:         Rating;
+  // Hostess
+  hostess_friendliness_rating:      Rating;
+  hostess_seating_rating:           Rating;
+  hostess_welcome_rating:           Rating;
+  hostess_communication_rating:     Rating;
+  hostess_overall_rating:           Rating;
+  // Common
+  recommendation:              Recommendation;
+  comment?:                    string;
 }

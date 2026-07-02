@@ -12,6 +12,7 @@ const VALID_RECOMMENDATIONS = [
 ] as const;
 
 const RATING_FIELDS = [
+  // Waiter / Waitress
   'friendliness_rating',
   'attentiveness_rating',
   'menu_knowledge_rating',
@@ -19,15 +20,29 @@ const RATING_FIELDS = [
   'food_quality_rating',
   'cleanliness_rating',
   'overall_rating',
+  // Bartender
+  'bartender_friendliness_rating',
+  'bartender_drink_knowledge_rating',
+  'bartender_speed_rating',
+  'bartender_welcome_rating',
+  'bartender_overall_rating',
+  // Hostess
+  'hostess_friendliness_rating',
+  'hostess_seating_rating',
+  'hostess_welcome_rating',
+  'hostess_communication_rating',
+  'hostess_overall_rating',
 ] as const;
 
 const REQUIRED_FIELDS = [
   'restaurant_id',
   'customer_name',
+  'customer_email',
   'waiter_name',
   ...RATING_FIELDS,
   'recommendation',
 ] as const;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export class FeedbackController {
 
@@ -66,6 +81,11 @@ export class FeedbackController {
         return;
       }
 
+      // ── Validate email format ────────────────────────────────────────────────
+      if (!EMAIL_RE.test(body.customer_email)) {
+        res.status(400).json(errorResponse('Invalid customer email format'));
+        return;
+      }
       // ── Validate recommendation ──────────────────────────────────────────────
       if (!VALID_RECOMMENDATIONS.includes(body.recommendation)) {
         res.status(400).json(
@@ -85,17 +105,32 @@ export class FeedbackController {
 
       // ── Persist ──────────────────────────────────────────────────────────────
       const id = await feedbackService.create({
-        restaurant_id:          Number(body.restaurant_id),
-        customer_name:          String(body.customer_name).trim().slice(0, 100),
-        waiter_name:            String(body.waiter_name).trim().slice(0, 100),
-        friendliness_rating:    Number(body.friendliness_rating)    as Rating,
-        attentiveness_rating:   Number(body.attentiveness_rating)   as Rating,
-        menu_knowledge_rating:  Number(body.menu_knowledge_rating)  as Rating,
-        service_speed_rating:   Number(body.service_speed_rating)   as Rating,
-        food_quality_rating:    Number(body.food_quality_rating)    as Rating,
-        cleanliness_rating:     Number(body.cleanliness_rating)     as Rating,
-        overall_rating:         Number(body.overall_rating)         as Rating,
-        recommendation:         body.recommendation,
+        restaurant_id:                    Number(body.restaurant_id),
+        customer_name:                    String(body.customer_name).trim().slice(0, 100),
+        customer_email:                   String(body.customer_email).trim().slice(0, 150),
+        waiter_name:                      String(body.waiter_name).trim().slice(0, 100),
+        // Waiter / Waitress
+        friendliness_rating:              Number(body.friendliness_rating)              as Rating,
+        attentiveness_rating:             Number(body.attentiveness_rating)             as Rating,
+        menu_knowledge_rating:            Number(body.menu_knowledge_rating)            as Rating,
+        service_speed_rating:             Number(body.service_speed_rating)             as Rating,
+        food_quality_rating:              Number(body.food_quality_rating)              as Rating,
+        cleanliness_rating:               Number(body.cleanliness_rating)               as Rating,
+        overall_rating:                   Number(body.overall_rating)                   as Rating,
+        // Bartender
+        bartender_friendliness_rating:    Number(body.bartender_friendliness_rating)    as Rating,
+        bartender_drink_knowledge_rating: Number(body.bartender_drink_knowledge_rating) as Rating,
+        bartender_speed_rating:           Number(body.bartender_speed_rating)           as Rating,
+        bartender_welcome_rating:         Number(body.bartender_welcome_rating)         as Rating,
+        bartender_overall_rating:         Number(body.bartender_overall_rating)         as Rating,
+        // Hostess
+        hostess_friendliness_rating:      Number(body.hostess_friendliness_rating)      as Rating,
+        hostess_seating_rating:           Number(body.hostess_seating_rating)           as Rating,
+        hostess_welcome_rating:           Number(body.hostess_welcome_rating)           as Rating,
+        hostess_communication_rating:     Number(body.hostess_communication_rating)     as Rating,
+        hostess_overall_rating:           Number(body.hostess_overall_rating)           as Rating,
+        // Common
+        recommendation: body.recommendation,
         comment: body.comment
           ? String(body.comment).trim().slice(0, 1000)
           : undefined,

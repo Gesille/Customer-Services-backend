@@ -3,7 +3,7 @@ import { restaurantService } from './restaurant.service';
 import { Restaurant } from '../models/restaurant.model';
 
 
-const FRONTEND_BASE_URL = process.env.FRONTEND_URL ?? 'https://yourapp.com';
+const FRONTEND_BASE_URL = process.env.FRONTEND_URL 
 
 export class QrService {
   buildFeedbackUrl(qrToken: string): string {

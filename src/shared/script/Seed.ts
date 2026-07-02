@@ -24,7 +24,7 @@ async function seed(): Promise<void> {
   const id = await odooRequest('x_restaurant', 'create', [[{
     x_name:          'Main Branch',
     x_location:      'Antigua',
-    x_manager_email: 'admin@chefworld.com',
+    x_manager_email: 'admin@nextintl.com',
     x_qr_token:      uuidv4(),
   }]]);
 

@@ -48,6 +48,7 @@ class EmailService {
     const safe = {
       restaurant: escapeHtml(restaurantName),
       customer:   escapeHtml(feedback.x_customer_name),
+      customerEmail: escapeHtml(feedback.x_customer_email), 
       waiter:     escapeHtml(feedback.x_waiter_name),
       comment:    escapeHtml(feedback.x_comment ?? 'No comment provided'),
       date:       escapeHtml(new Date(feedback.x_date).toLocaleString()),
@@ -61,6 +62,7 @@ class EmailService {
 
   <p><strong>Restaurant:</strong> ${safe.restaurant}</p>
   <p><strong>Customer:</strong> ${safe.customer}</p>
+  <p><strong>Customer Email:</strong> ${safe.customerEmail}</p>
   <p><strong>Waiter / Staff:</strong> ${safe.waiter}</p>
 
   <hr style="margin: 16px 0;" />
