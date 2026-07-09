@@ -236,7 +236,6 @@ export const refreshTokenMiddleware = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const refresh_token = req.cookies.refresh_token as string;
-
       if (!refresh_token) {
         return next(new ErrorHandler("Please login to access this resource", 401));
       }
@@ -251,34 +250,31 @@ export const refreshTokenMiddleware = CatchAsyncError(
 
       const accessToken = jwt.sign(
         { id: user._id },
-        process.env.ACCESS_TOKEN_SECRET as string,
+        process.env.ACCESS_TOKEN_SECRET as string,    
         { expiresIn: "1h" }
       );
-
       const refreshToken = jwt.sign(
         { id: user._id },
         process.env.REFRESH_TOKEN as string,
         { expiresIn: "3d" }
       );
 
-      res.cookie("ACCESS_TOKEN_SECRET", accessToken, accessTokenOptions);
+      res.cookie("ACCESS_TOKEN_SECRET", accessToken, accessTokenOptions);   
       res.cookie("refresh_token", refreshToken, refreshTokenOptions);
 
-      req.user = user; // ✅ attach user for downstream
-      next(); // ✅ always continue
-
+      req.user = user;
+      next();
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 401));
     }
   }
 );
 
-// ✅ standalone route — uses middleware then sends response
 export const updateAccessToken = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     return res.status(200).json({
       success: true,
-      accessToken: req.cookies.ACCESS_TOKEN_SECRET,
+      accessToken: req.cookies.ACCESS_TOKEN_SECRET,   
     });
   }
 );
@@ -286,20 +282,24 @@ export const updateAccessToken = CatchAsyncError(
 export const updateUserInfo = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { name, phone } = req.body;
-
+      const { name, phone, email } = req.body;
       const userId = req.user?._id;
 
       const user = await userModel.findById(userId);
-
       if (!user) {
         return next(new ErrorHandler("User not found", 404));
       }
 
+      if (email && email !== user.email) {
+        const isEmailTaken = await userModel.findOne({ email });
+        if (isEmailTaken) {
+          return next(new ErrorHandler("Email is already in use", 400));
+        }
+        user.email = email;
+      }
+
       if (name) user.name = name;
       if (phone) user.phone = phone;
-
-
 
       await user.save();
 

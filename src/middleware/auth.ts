@@ -10,9 +10,9 @@ import ErrorHandler from "./ErrorHandler";
 
 export const isAuthenticated = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
-    const access_token = req.cookies.access_token as string;
+    const ACCESS_TOKEN_SECRET = req.cookies.ACCESS_TOKEN_SECRET as string;
 
-    if (!access_token) {
+    if (!ACCESS_TOKEN_SECRET) {
       return next(
         new ErrorHandler("Please login to access this resource", 400)
       );
@@ -20,7 +20,7 @@ export const isAuthenticated = CatchAsyncError(
 
     try {
      
-      const decoded = jwt.verify(access_token, process.env.ACCESS_TOKEN as string) as JwtPayload;
+      const decoded = jwt.verify(ACCESS_TOKEN_SECRET, process.env.ACCESS_TOKEN_SECRET as string) as JwtPayload;
 
 
       if (decoded.exp && decoded.exp <= Date.now() / 1000) {
