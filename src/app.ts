@@ -7,6 +7,7 @@ import { rateLimit } from 'express-rate-limit'
 import express,{NextFunction, Request, Response} from "express";
 import { ErrorMiddleware } from './middleware/error';
 import userRouter from './routes/user.route';
+import { cvRouter } from './routes/cv.route';
 
 
 const app = express();
@@ -38,6 +39,7 @@ app.use(limiter);
 // Routes
 app.use('/api/v1', routes);
 app.use("/api/v1",userRouter);
+app.use("/api/v1", cvRouter);
 
 
 //unknoun route
