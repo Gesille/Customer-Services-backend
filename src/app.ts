@@ -14,10 +14,10 @@ const app = express();
 // Middlewares
 app.use(
   cors({
-    origin:[
-       "restaurant-feedback-dashboard.vercel.app",
-       "restaurant-feedback-frontend-lovat.vercel.app",
-      ],
+    origin: [
+      "https://restaurant-feedback-dashboard.vercel.app",
+      "https://restaurant-feedback-frontend-lovat.vercel.app",
+    ],
     credentials: true,
   })
 );
