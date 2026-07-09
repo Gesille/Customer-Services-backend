@@ -15,8 +15,8 @@ const app = express();
 app.use(
   cors({
     origin:[
-       "http://localhost:3000",
-    "http://localhost:3001",
+       "restaurant-feedback-dashboard.vercel.app",
+       "restaurant-feedback-frontend-lovat.vercel.app",
       ],
     credentials: true,
   })
