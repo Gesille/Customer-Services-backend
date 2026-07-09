@@ -24,7 +24,7 @@ export interface IUser extends Document {
   isVerified: boolean;
   phone?: string;
 
-  odooPartnerId: number;
+  
   comparePassword: (password: string) => Promise<boolean>;
   SignAccessToken: () => string;
   SignRefreshToken: () => string;
@@ -69,12 +69,9 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
     },
     phone: {
       type: String,
-    },
+    }
 
   
-    odooPartnerId: {
-      type: Number,
-    },
    
   },
   { timestamps: true },
