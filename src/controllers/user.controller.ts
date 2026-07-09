@@ -23,7 +23,7 @@ import userModel, { IUser } from "../models/user.model";
 import cloudinary from "cloudinary";
 import mongoose from "mongoose";
 import ErrorHandler from "../middleware/ErrorHandler";
-import { odooRequest } from "../odoo/odoo-client";
+
 
 dotenv.config();
 
@@ -136,39 +136,15 @@ export const activateUser = CatchAsyncError(
         return next(new ErrorHandler("Email is already exist", 400));
       }
 
-      //  create user first
-      const user = await userModel.create({
+   await userModel.create({
         name,
         email,
         password,
       });
-
-      let partnerId: number;
-
-      try {
-        //create partner in Odoo
-        partnerId = await odooRequest("res.partner", "create", [
-          {
-            name: user.name,
-            email: user.email,
-          },
-        ]);
-      } catch (err) {
-        console.error("❌ Odoo error:", err);
-
-        // 🔥 IMPORTANT: rollback user
-        await user.deleteOne();
-
-        return next(new ErrorHandler("Failed to sync with Odoo", 500));
-      }
-
-      // save partner id
-      user.odooPartnerId = Number(partnerId);
-      await user.save();
-
+ 
       res.status(201).json({
         success: true,
-        message: "User activated and synced with Odoo",
+        message: "User activated successfully",
       });
     } catch (error: any) {
       console.error("Activation Error:", error);
@@ -219,7 +195,7 @@ export const logoutUser = CatchAsyncError(
     try {
       res.cookie("ACCESS_TOKEN_SECRET", "", { maxAge: 1 });
       res.cookie("refresh_token", "", { maxAge: 1 });
-      const userId = req.user?._id || "";
+    
       
       res.status(200).json({
         success: true,

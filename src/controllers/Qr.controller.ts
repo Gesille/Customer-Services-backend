@@ -1,4 +1,5 @@
 import { Request, Response }  from 'express';
+import mongoose from 'mongoose';
 import { restaurantService }  from '../services/restaurant.service';
 import { errorResponse, successResponse } from '../models/response.model';
 import { qrService } from '../services/Qr.service';
@@ -10,10 +11,12 @@ export class QrController {
 
   async getQrImage(req: Request, res: Response): Promise<void> {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) { res.status(400).json(errorResponse('Invalid restaurant ID')); return; }
+      const id = req.params.id;
+      if (!mongoose.Types.ObjectId.isValid(id as string)) {
+        res.status(400).json(errorResponse('Invalid restaurant ID')); return;
+      }
 
-      const { buffer, restaurant } = await qrService.generateQrBuffer(id);
+      const { buffer, restaurant } = await qrService.generateQrBuffer(id as string);
       const slug = restaurant.x_name.replace(/\s+/g, '-').toLowerCase();
 
       res.setHeader('Content-Type', 'image/png');
@@ -27,10 +30,10 @@ export class QrController {
 
  async getPrintPage(req: Request, res: Response): Promise<void> {
   try {
-    const id = Number(req.params.id);
-    if (isNaN(id)) { res.status(400).send('Invalid restaurant ID'); return; }
+    const id = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(id as string)) { res.status(400).send('Invalid restaurant ID'); return; }
 
-    const { dataUrl, restaurant, feedbackUrl } = await qrService.generateQrDataUrl(id);
+    const { dataUrl, restaurant, feedbackUrl } = await qrService.generateQrDataUrl(id as string);
     const html = buildPrintHtml(restaurant.x_name, restaurant.x_location, dataUrl, feedbackUrl);
 
     res.setHeader('Content-Type', 'text/html');

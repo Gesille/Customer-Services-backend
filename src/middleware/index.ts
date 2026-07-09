@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 
-// ─── Simple in-memory rate limiter ───────────────────────────────────────────
-// For production, swap for `express-rate-limit` with a Redis store.
-
+//  Simple in-memory rate limiter 
 interface Window { count: number; resetAt: number }
 
 const store = new Map<string, Window>();
@@ -31,14 +29,14 @@ function rateLimiter(opts: { windowMs: number; max: number; message: string }) {
   };
 }
 
-/** 30 feedback submissions per IP per 15 min */
+//  30 feedback submissions per IP per 15 min
 export const feedbackLimiter = rateLimiter({
   windowMs: 15 * 60 * 1000,
   max:      30,
   message:  'Too many submissions — please wait a few minutes before trying again.',
 });
 
-/** 200 read requests per IP per minute */
+//  200 read requests per IP per minute
 export const readLimiter = rateLimiter({
   windowMs: 60 * 1000,
   max:      200,
@@ -46,7 +44,7 @@ export const readLimiter = rateLimiter({
 });
 
 
-// ─── API key guard (optional, activate via API_KEY env var) ──────────────────
+//  API key guard (optional, activate via API_KEY env var) 
 
 export function apiKeyGuard(req: Request, res: Response, next: NextFunction): void {
   const requiredKey = process.env.API_KEY;
@@ -61,7 +59,7 @@ export function apiKeyGuard(req: Request, res: Response, next: NextFunction): vo
 }
 
 
-// ─── Input sanitisation helper ───────────────────────────────────────────────
+//  Input sanitisation helper 
 
 export function sanitizeString(value: unknown, maxLength = 200): string | undefined {
   if (value === undefined || value === null) return undefined;

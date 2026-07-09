@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { feedbackService }            from '../services/feedback.service';
 import { restaurantService }          from '../services/restaurant.service';
 import { errorResponse, successResponse } from '../models/response.model';
@@ -48,10 +49,12 @@ export class FeedbackController {
 
   async getByRestaurant(req: Request, res: Response): Promise<void> {
     try {
-      const id = Number(req.params.restaurantId);
-      if (isNaN(id)) { res.status(400).json(errorResponse('Invalid restaurant ID')); return; }
+      const id = req.params.restaurantId;
+      if (!id || !mongoose.Types.ObjectId.isValid(id as string)) {
+        res.status(400).json(errorResponse('Invalid restaurant ID')); return;
+      }
 
-      const feedbacks = await feedbackService.getByRestaurant(id);
+      const feedbacks = await feedbackService.getByRestaurant(id as string);
       res.status(200).json(successResponse('Feedbacks fetched', feedbacks));
     } catch (err: any) {
       res.status(500).json(errorResponse('Failed to fetch feedbacks', err.message));
@@ -81,6 +84,12 @@ export class FeedbackController {
         return;
       }
 
+      // ── Validate restaurant id ───────────────────────────────────────────────
+      if (!mongoose.Types.ObjectId.isValid(body.restaurant_id)) {
+        res.status(400).json(errorResponse('Invalid restaurant ID'));
+        return;
+      }
+
       // ── Validate email format ────────────────────────────────────────────────
       if (!EMAIL_RE.test(body.customer_email)) {
         res.status(400).json(errorResponse('Invalid customer email format'));
@@ -105,7 +114,7 @@ export class FeedbackController {
 
       // ── Persist ──────────────────────────────────────────────────────────────
       const id = await feedbackService.create({
-        restaurant_id:                    Number(body.restaurant_id),
+        restaurant_id:                    String(body.restaurant_id),
         customer_name:                    String(body.customer_name).trim().slice(0, 100),
         customer_email:                   String(body.customer_email).trim().slice(0, 150),
         waiter_name:                      String(body.waiter_name).trim().slice(0, 100),
@@ -144,10 +153,12 @@ export class FeedbackController {
 
   async getStats(req: Request, res: Response): Promise<void> {
     try {
-      const id = Number(req.params.restaurantId);
-      if (isNaN(id)) { res.status(400).json(errorResponse('Invalid restaurant ID')); return; }
+      const id = req.params.restaurantId;
+      if (!id || !mongoose.Types.ObjectId.isValid(id as string)) {
+        res.status(400).json(errorResponse('Invalid restaurant ID')); return;
+      }
 
-      const stats = await feedbackService.getStats(id);
+      const stats = await feedbackService.getStats(id as string);
       res.status(200).json(successResponse('Stats fetched', stats));
     } catch (err: any) {
       res.status(500).json(errorResponse('Failed to fetch stats', err.message));

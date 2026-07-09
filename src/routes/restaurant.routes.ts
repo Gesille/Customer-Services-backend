@@ -6,8 +6,7 @@ import { readLimiter } from '../middleware';
 const router = Router();
 
 export const restaurantRouter = Router();
- 
-// ⚠️  Static/specific routes MUST come before /:id to avoid route conflicts
+
 restaurantRouter.get ('/',              readLimiter, restaurantController.getAll.bind(restaurantController));
 restaurantRouter.post('/',                           restaurantController.create.bind(restaurantController));
 restaurantRouter.get ('/qr/:token',     readLimiter, qrController.resolveToken.bind(qrController));  

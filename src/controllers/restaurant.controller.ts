@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { restaurantService } from '../services/restaurant.service';
 import { errorResponse, successResponse } from '../models/response.model';
 
@@ -17,10 +18,12 @@ export class RestaurantController {
 
   async getById(req: Request, res: Response): Promise<void> {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) { res.status(400).json(errorResponse('Invalid restaurant ID')); return; }
+      const { id } = req.params;
+      if (!mongoose.Types.ObjectId.isValid(id as string)) {
+        res.status(400).json(errorResponse('Invalid restaurant ID')); return;
+      }
 
-      const restaurant = await restaurantService.getById(id);
+      const restaurant = await restaurantService.getById(id as string);
       if (!restaurant) { res.status(404).json(errorResponse('Restaurant not found')); return; }
 
       res.status(200).json(successResponse('Restaurant fetched', restaurant));

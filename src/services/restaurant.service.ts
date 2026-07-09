@@ -1,39 +1,44 @@
+import mongoose from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
-import { odooRequest } from '../odoo/odoo-client';
-import { ODOO_FIELDS, ODOO_MODELS } from '../config/odoo';
-import { CreateRestaurantDto, Restaurant } from '../models/restaurant.model';
+import {
+  RestaurantModel,
+  CreateRestaurantDto,
+  Restaurant,
+} from '../models/restaurant.model';
 
+function toRestaurant(doc: any): Restaurant {
+  return {
+    id:              doc._id.toString(),
+    x_name:          doc.x_name,
+    x_location:      doc.x_location,
+    x_manager_email: doc.x_manager_email,
+    x_qr_token:      doc.x_qr_token,
+  };
+}
 
 export class RestaurantService {
   async getAll(): Promise<Restaurant[]> {
-    return odooRequest(ODOO_MODELS.RESTAURANT, 'search_read', [[]], {
-      fields: ODOO_FIELDS.RESTAURANT,
-    });
+    const docs = await RestaurantModel.find().sort({ createdAt: -1 }).lean();
+    return docs.map(toRestaurant);
   }
 
-  async getById(id: number): Promise<Restaurant | null> {
-    const results = await odooRequest(
-      ODOO_MODELS.RESTAURANT, 'search_read',
-      [[['id', '=', id]]],
-      { fields: ODOO_FIELDS.RESTAURANT },
-    );
-    return results[0] ?? null;
+  async getById(id: string): Promise<Restaurant | null> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    const doc = await RestaurantModel.findById(id).lean();
+    return doc ? toRestaurant(doc) : null;
   }
 
   async getByQrToken(token: string): Promise<Restaurant | null> {
-    const results = await odooRequest(
-      ODOO_MODELS.RESTAURANT, 'search_read',
-      [[['x_qr_token', '=', token]]],
-      { fields: ODOO_FIELDS.RESTAURANT },
-    );
-    return results[0] ?? null;
+    const doc = await RestaurantModel.findOne({ x_qr_token: token }).lean();
+    return doc ? toRestaurant(doc) : null;
   }
 
-  async create(dto: CreateRestaurantDto): Promise<number> {
-    return odooRequest(ODOO_MODELS.RESTAURANT, 'create', [[{
+  async create(dto: CreateRestaurantDto): Promise<string> {
+    const doc = await RestaurantModel.create({
       ...dto,
       x_qr_token: uuidv4(),
-    }]]);
+    });
+    return doc._id.toString();
   }
 }
 

@@ -5,12 +5,7 @@ export const ENV = {
   PORT: process.env.PORT || 8000,
   NODE_ENV: process.env.NODE_ENV || 'development',
   DB_URL: process.env.DB_URL!,
-  ODOO: {
-    URL: process.env.ODOO_URL!,
-    DB: process.env.ODOO_DB!,
-    USERNAME: process.env.ODOO_USERNAME!,
-    PASSWORD: process.env.ODOO_PASSWORD!,
-  },
+  
 
   EMAIL: {
     HOST: process.env.SMTP_HOST!,

@@ -8,12 +8,10 @@ function esc(str: string): string {
 }
 
 export function buildPrintHtml(
-  name: string,
-  location: string,
-  qrDataUrl: string,
-  feedbackUrl: string,
+name: string, location: string, qrDataUrl: string, feedbackUrl: string,
+ 
 ): string {
-  const slug = name.replace(/\s+/g, '-').toLowerCase();
+ 
 
   return `<!DOCTYPE html>
 <html lang="en">

@@ -3,7 +3,7 @@ import { restaurantService } from './restaurant.service';
 import { Restaurant } from '../models/restaurant.model';
 
 
-const FRONTEND_BASE_URL = process.env.FRONTEND_URL 
+const FRONTEND_BASE_URL = process.env.FRONTEND_URL
 
 export class QrService {
   buildFeedbackUrl(qrToken: string): string {
@@ -11,7 +11,7 @@ export class QrService {
   }
 
   async generateQrBuffer(
-    restaurantId: number,
+    restaurantId: string,
   ): Promise<{ buffer: Buffer; restaurant: Restaurant }> {
     const restaurant = await restaurantService.getById(restaurantId);
     if (!restaurant) throw new Error('Restaurant not found');
@@ -26,7 +26,7 @@ export class QrService {
     return { buffer, restaurant };
   }
 
-  async generateQrDataUrl(restaurantId: number): Promise<{
+  async generateQrDataUrl(restaurantId: string): Promise<{
     dataUrl:     string;
     restaurant:  Restaurant;
     feedbackUrl: string;
