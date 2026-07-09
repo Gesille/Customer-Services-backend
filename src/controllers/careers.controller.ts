@@ -27,18 +27,14 @@ export const submitCV = CatchAsyncError(
           { name, email },
         ]);
       }
-const fields = await odooRequest("hr.applicant", "fields_get", [
-  [],
-  ["string", "type"],
-]);
-console.log(Object.keys(fields));
+
       // 2. create the applicant record
       const applicantId = await odooRequest("hr.applicant", "create", [
         {
           partner_name: name,
           email_from: email,
           partner_id: partnerId,
-          description: message || "",
+          applicant_notes: message || "",
         },
       ]);
 
