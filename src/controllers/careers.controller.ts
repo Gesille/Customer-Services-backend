@@ -47,7 +47,7 @@ export const submitCV = CatchAsyncError(
     await sendMail({
       email: process.env.HR_EMAIL as string,
       subject: `New CV Submission — ${name}`,
-      template: "no.ejs",
+      template: "new-cv-notification.ejs",
       data: {
         name,
         email,
