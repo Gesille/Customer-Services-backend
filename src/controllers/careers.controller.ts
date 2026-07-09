@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import { CatchAsyncError } from "../middleware/catchAsyncError";
 import ErrorHandler from "../middleware/ErrorHandler";
 import { ApplicantModel } from "../models/applicant.model";
-
+import sendMail from "../utils/sendMail";
 
 
 // submitCV — creates an applicant record directly in MongoDB
@@ -35,6 +35,32 @@ export const submitCV = CatchAsyncError(
         ],
       });
 
+     if (!jobId) {
+  try {
+    await sendMail({
+      email,
+      subject: "We've received your CV",
+      template: "cv-submission-confirmation.ejs",
+      data: { name },
+    });
+
+    await sendMail({
+      email: process.env.HR_EMAIL as string,
+      subject: `New CV Submission — ${name}`,
+      template: "new-cv-notification.ejs",
+      data: {
+        name,
+        email,
+        phone: phone || "Not provided",
+        linkedin: linkedin || "Not provided",
+        message: message || "No message provided",
+        adminUrl: `${process.env.ADMIN_DASHBOARD_URL}/applicants`,
+      },
+    });
+  } catch (mailError: any) {
+    console.error("CV email notification error:", mailError);
+  }
+}
       res.status(201).json({ success: true, message: "CV submitted successfully" });
     } catch (error: any) {
       console.error("CV submission error:", error);
@@ -42,7 +68,6 @@ export const submitCV = CatchAsyncError(
     }
   }
 );
-
 // get all CVs (for admin)
 export const getAllCVs = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
