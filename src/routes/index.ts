@@ -9,5 +9,5 @@ export const rootRouter = Router();
 rootRouter.use('/restaurants',restaurantRouter);
 rootRouter.use('/feedbacks',feedbackRouter);
 rootRouter.use('/users',userRouter);
-rootRouter.use('/cv',cvRouter);
+rootRouter.use('/cvs',cvRouter);
 export default rootRouter;
