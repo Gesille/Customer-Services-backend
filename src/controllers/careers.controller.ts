@@ -27,7 +27,11 @@ export const submitCV = CatchAsyncError(
           { name, email },
         ]);
       }
-
+const models = await odooRequest("ir.model", "search_read", [
+  [["model", "=", "hr.applicant"]],
+  ["model", "name"],
+]);
+console.log(models);
       // 2. create the applicant record
       const applicantId = await odooRequest("hr.applicant", "create", [
         {
