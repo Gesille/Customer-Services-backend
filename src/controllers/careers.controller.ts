@@ -12,8 +12,8 @@ export const submitCV = CatchAsyncError(
     try {
       const { name, email, message, cvFile, cvFileName, jobId, phone, linkedin } = req.body;
 
-      if (!name || !email || !cvFile) {
-        return next(new ErrorHandler("Name, email, and CV are required", 400));
+      if (!name || !email || !cvFile || !phone) {
+        return next(new ErrorHandler("Name, email, CV, and phone are required", 400));
       }
 
       const base64Data = String(cvFile).includes(",") ? String(cvFile).split(",")[1] : String(cvFile);
@@ -22,7 +22,7 @@ export const submitCV = CatchAsyncError(
       await ApplicantModel.create({
         name,
         email,
-        phone: phone || undefined,
+        phone: phone,
         message: message || "",
         linkedin: linkedin || undefined,
         jobId: jobId ? String(jobId) : undefined, 
@@ -51,7 +51,7 @@ export const submitCV = CatchAsyncError(
       data: {
         name,
         email,
-        phone: phone || "Not provided",
+        phone: phone,
         linkedin: linkedin || "Not provided",
         message: message || "No message provided",
         adminUrl: `${process.env.ADMIN_DASHBOARD_URL}/applicants`,
@@ -72,16 +72,20 @@ export const submitCV = CatchAsyncError(
 export const getAllCVs = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const applicants = await ApplicantModel.find().sort({ createdAt: -1 }).lean();
+      const applicants = await ApplicantModel.find()
+  .sort({ createdAt: -1 })
+  .populate("jobId", "title") 
+  .lean();
 
       const data = applicants.map((applicant: any) => ({
         id: applicant._id.toString(),
         name: applicant.name,
         email: applicant.email,
         phone: applicant.phone ?? null,
+        linkedin: applicant.linkedin ?? null,
         message: applicant.message ?? null,
         stage: applicant.stage,
-        job: applicant.jobId ?? null,
+        job: applicant.jobId?.title ?? null,
         submittedAt: applicant.createdAt,
         cvFiles: (applicant.attachments || []).map((att: any) => ({
           id: att._id.toString(),

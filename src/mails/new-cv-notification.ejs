@@ -5,22 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>New CV Submission</title>
 </head>
-<body style="margin:0; padding:0; background-color:#f4f5f7; font-family: Arial, Helvetica, sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f5f7; padding: 40px 0;">
+<body style="margin:0; padding:0; background-color:#0B0E14; font-family: Arial, Helvetica, sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0B0E14; padding: 48px 0;">
     <tr>
       <td align="center">
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius: 8px; overflow:hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#111623; border:1px solid #1F2637; border-radius: 12px; overflow:hidden;">
 
           <!-- Header -->
           <tr>
-            <td style="background-color:#0f4c81; padding: 28px 40px;">
+            <td style="padding: 32px 40px 24px 40px; border-bottom:1px solid #1F2637;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="color:#ffffff; font-size:18px; font-weight:700;">
+                  <td style="color:#F5F5F0; font-size:15px; font-weight:600; letter-spacing:0.3px;">
                     New CV Submission
                   </td>
                   <td align="right">
-                    <span style="background-color:#ffffff; color:#0f4c81; font-size:12px; font-weight:700; padding:6px 12px; border-radius: 20px;">
+                    <span style="background-color:rgba(212,175,55,0.12); color:#D4AF37; font-size:11px; font-weight:700; letter-spacing:1px; padding:6px 12px; border-radius: 20px; border:1px solid rgba(212,175,55,0.3);">
                       GENERAL APPLICATION
                     </span>
                   </td>
@@ -31,42 +31,55 @@
 
           <!-- Intro -->
           <tr>
-            <td style="padding: 28px 40px 0 40px; color:#4a4a58; font-size:15px; line-height:1.6;">
-              <p style="margin:0;">A new candidate has submitted a CV through the website. Details below:</p>
+            <td style="padding: 28px 40px 0 40px; color:#9AA1B1; font-size:14px; line-height:1.7;">
+              <p style="margin:0;">A new candidate submitted a CV through the careers page. Details below — the file is attached to this email.</p>
             </td>
           </tr>
 
           <!-- Details Card -->
           <tr>
             <td style="padding: 20px 40px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8f9fb; border:1px solid #edeef1; border-radius: 8px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0B0E14; border:1px solid #1F2637; border-radius: 10px;">
                 <tr>
-                  <td style="padding: 16px 20px; border-bottom:1px solid #edeef1; width:35%; color:#8a8a94; font-size:13px; font-weight:600;">NAME</td>
-                  <td style="padding: 16px 20px; border-bottom:1px solid #edeef1; color:#1a1a2e; font-size:14px;"><%= name %></td>
+                  <td style="padding: 16px 20px; border-bottom:1px solid #1F2637; width:32%; color:#D4AF37; font-size:11px; font-weight:700; letter-spacing:1px;">NAME</td>
+                  <td style="padding: 16px 20px; border-bottom:1px solid #1F2637; color:#F5F5F0; font-size:14px;"><%= name %></td>
                 </tr>
                 <tr>
-                  <td style="padding: 16px 20px; border-bottom:1px solid #edeef1; color:#8a8a94; font-size:13px; font-weight:600;">EMAIL</td>
-                  <td style="padding: 16px 20px; border-bottom:1px solid #edeef1; color:#1a1a2e; font-size:14px;">
-                    <a href="mailto:<%= email %>" style="color:#0f4c81; text-decoration:none;"><%= email %></a>
+                  <td style="padding: 16px 20px; border-bottom:1px solid #1F2637; color:#D4AF37; font-size:11px; font-weight:700; letter-spacing:1px;">EMAIL</td>
+                  <td style="padding: 16px 20px; border-bottom:1px solid #1F2637; font-size:14px;">
+                    <a href="mailto:<%= email %>" style="color:#D4AF37; text-decoration:none;"><%= email %></a>
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding: 16px 20px; border-bottom:1px solid #edeef1; color:#8a8a94; font-size:13px; font-weight:600;">PHONE</td>
-                  <td style="padding: 16px 20px; border-bottom:1px solid #edeef1; color:#1a1a2e; font-size:14px;"><%= phone %></td>
+                  <td style="padding: 16px 20px; border-bottom:1px solid #1F2637; color:#D4AF37; font-size:11px; font-weight:700; letter-spacing:1px;">PHONE</td>
+                  <td style="padding: 16px 20px; border-bottom:1px solid #1F2637; color:#F5F5F0; font-size:14px;"><%= phone %></td>
                 </tr>
                 <tr>
-                  <td style="padding: 16px 20px; border-bottom:1px solid #edeef1; color:#8a8a94; font-size:13px; font-weight:600;">LINKEDIN</td>
-                  <td style="padding: 16px 20px; border-bottom:1px solid #edeef1; color:#1a1a2e; font-size:14px;">
+                  <td style="padding: 16px 20px; border-bottom:1px solid #1F2637; color:#D4AF37; font-size:11px; font-weight:700; letter-spacing:1px;">LINKEDIN</td>
+                  <td style="padding: 16px 20px; border-bottom:1px solid #1F2637; font-size:14px;">
                     <% if (linkedin && linkedin !== "Not provided") { %>
-                      <a href="<%= linkedin %>" style="color:#0f4c81; text-decoration:none;"><%= linkedin %></a>
+                      <a href="<%= linkedin %>" style="color:#D4AF37; text-decoration:none;"><%= linkedin %></a>
                     <% } else { %>
-                      Not provided
+                      <span style="color:#5B6478;">Not provided</span>
                     <% } %>
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding: 16px 20px; color:#8a8a94; font-size:13px; font-weight:600; vertical-align:top;">MESSAGE</td>
-                  <td style="padding: 16px 20px; color:#1a1a2e; font-size:14px; line-height:1.5;"><%= message %></td>
+                  <td style="padding: 16px 20px; color:#D4AF37; font-size:11px; font-weight:700; letter-spacing:1px; vertical-align:top;">MESSAGE</td>
+                  <td style="padding: 16px 20px; color:#F5F5F0; font-size:14px; line-height:1.6;"><%= message %></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Attachment note -->
+          <tr>
+            <td style="padding: 4px 40px 8px 40px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:rgba(212,175,55,0.08); border:1px solid rgba(212,175,55,0.25); border-radius:8px;">
+                <tr>
+                  <td style="padding:12px 16px; font-size:13px; color:#F5F5F0;">
+                    📎 CV file (<%= cvFileName %>) is attached to this email.
+                  </td>
                 </tr>
               </table>
             </td>
@@ -74,9 +87,9 @@
 
           <!-- CTA Button -->
           <tr>
-            <td style="padding: 8px 40px 32px 40px;" align="center">
+            <td style="padding: 12px 40px 36px 40px;" align="center">
               <a href="<%= adminUrl %>"
-                 style="background-color:#0f4c81; color:#ffffff; text-decoration:none; padding: 12px 28px; border-radius: 6px; font-size:14px; font-weight:600; display:inline-block;">
+                 style="background-color:#D4AF37; color:#0B0E14; text-decoration:none; padding: 13px 30px; border-radius: 8px; font-size:14px; font-weight:700; display:inline-block;">
                 View in Admin Dashboard
               </a>
             </td>
@@ -84,9 +97,9 @@
 
           <!-- Footer -->
           <tr>
-            <td style="background-color:#fafafa; padding: 20px 40px; text-align:center; border-top:1px solid #eeeeee;">
-              <p style="margin:0; color:#a0a0a8; font-size:12px;">
-                Automated notification from Your Company Name recruitment system.
+            <td style="background-color:#0B0E14; padding: 20px 40px; text-align:center; border-top:1px solid #1F2637;">
+              <p style="margin:0; color:#5B6478; font-size:12px;">
+                Automated notification from the recruitment system.
               </p>
             </td>
           </tr>
