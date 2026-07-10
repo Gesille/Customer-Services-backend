@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/server.ts --watch src --ext ts",
-    "build": "tsc",
+    "build": "tsc && copyfiles -u 1 src/mails/**/* dist/mails",
     "start": "node dist/server.js"
   },
   "keywords": [],
@@ -38,6 +38,7 @@
     "@types/nodemailer": "^8.0.0",
     "@types/qrcode": "^1.5.6",
     "bcryptjs": "^3.0.3",
+    "copyfiles": "^2.4.1",
     "mongoose": "^9.7.3",
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",

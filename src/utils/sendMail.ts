@@ -32,11 +32,7 @@ interface EmailOptions {
 const sendMail = async (options: EmailOptions): Promise<void> => {
   const { email, subject, template, data, replyTo } = options;
 
-  const templatePath = path.join(
-  process.cwd(),
-  "mails",
-  template
-);
+  const templatePath = path.join(__dirname, "../mails", template);
   const html = await ejs.renderFile(templatePath, data);
 
   await transporter.sendMail({
