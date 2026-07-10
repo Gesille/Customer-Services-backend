@@ -1,0 +1,13 @@
+<div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
+  <h2 style="color: #a21caf;">You've been assigned a candidate</h2>
+  <p>Hi,</p>
+  <p><strong><%= candidateName %></strong> (<%= candidateEmail %>) has been assigned to you for review.</p>
+  <% if (position) { %>
+    <p>Position: <%= position %></p>
+  <% } %>
+  <p>
+    <a href="<%= adminUrl %>" style="display:inline-block; background:#c026d3; color:#fff; padding:10px 18px; border-radius:8px; text-decoration:none;">
+      View in dashboard
+    </a>
+  </p>
+</div>

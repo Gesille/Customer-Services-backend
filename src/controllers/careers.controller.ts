@@ -87,6 +87,12 @@ export const getAllCVs = CatchAsyncError(
         stage: applicant.stage,
         job: applicant.jobId?.title ?? null,
         submittedAt: applicant.createdAt,
+        notes: (applicant.notes || []).map((n: any) => ({
+  id: n._id.toString(),
+  text: n.text,
+  author: n.author,
+  createdAt: n.createdAt,
+})),
         cvFiles: (applicant.attachments || []).map((att: any) => ({
           id: att._id.toString(),
           name: att.name,
@@ -157,7 +163,7 @@ export const updateApplicantStage = CatchAsyncError(
     const applicant = await ApplicantModel.findByIdAndUpdate(
       id,
       { stage },
-      { new: true }
+     { returnDocument: "after" }
     ).lean();
 
     if (!applicant) return next(new ErrorHandler("Applicant not found", 404));
@@ -166,7 +172,7 @@ export const updateApplicantStage = CatchAsyncError(
   }
 );
 
-// PATCH /api/v1/cv/:id/assign
+// controller — replace assignApplicant
 export const assignApplicant = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
@@ -176,19 +182,45 @@ export const assignApplicant = CatchAsyncError(
       return next(new ErrorHandler("Invalid applicant ID", 400));
     }
 
+    if (assignedTo) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(assignedTo)) {
+        return next(new ErrorHandler("assignedTo must be a valid email address", 400));
+      }
+    }
+
     const applicant = await ApplicantModel.findByIdAndUpdate(
       id,
       { assignedTo: assignedTo || undefined },
-      { new: true }
+      { returnDocument: "after" }
     ).lean();
 
     if (!applicant) return next(new ErrorHandler("Applicant not found", 404));
+
+    if (assignedTo) {
+      try {
+        await sendMail({
+          email: assignedTo,
+          subject: `You've been assigned a candidate — ${applicant.name}`,
+          template: "applicant-assigned.ejs",
+          data: {
+            candidateName: applicant.name,
+            candidateEmail: applicant.email,
+            position: (applicant as any).jobId ? undefined : "General submission",
+            adminUrl: `${process.env.ADMIN_DASHBOARD_URL}/applicants`,
+          },
+        });
+      } catch (mailError: any) {
+        console.error("Assignment email failed:", mailError);
+        // don't fail the request just because the notification email failed
+      }
+    }
 
     res.status(200).json({ success: true, assignedTo: applicant.assignedTo ?? null });
   }
 );
 
-// POST /api/v1/cv/:id/notes
+
 export const addApplicantNote = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
@@ -204,7 +236,7 @@ export const addApplicantNote = CatchAsyncError(
     const applicant = await ApplicantModel.findByIdAndUpdate(
       id,
       { $push: { notes: { text, author } } },
-      { new: true }
+      { returnDocument: "after" }
     ).lean();
 
     if (!applicant) return next(new ErrorHandler("Applicant not found", 404));
