@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon --exec ts-node src/server.ts --watch src --ext ts",
-    "build": "tsc && copyfiles -u 1 src/mails/**/* dist/mails",
+     "build": "tsc && cp -r src/mails dist/mails",
     "start": "node dist/server.js"
   },
   "keywords": [],
