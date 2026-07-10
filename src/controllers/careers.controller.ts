@@ -193,12 +193,20 @@ export const assignApplicant = CatchAsyncError(
       id,
       { assignedTo: assignedTo || undefined },
       { returnDocument: "after" }
-    ).lean();
+    )
+      .populate("jobId", "title")
+      .lean();
 
     if (!applicant) return next(new ErrorHandler("Applicant not found", 404));
 
     if (assignedTo) {
       try {
+        const attachments = (applicant.attachments || []).map((att: any) => ({
+          filename: att.name,
+          content: Buffer.isBuffer(att.data) ? att.data : Buffer.from(att.data.buffer),
+          contentType: att.mimetype || "application/pdf",
+        }));
+
         await sendMail({
           email: assignedTo,
           subject: `You've been assigned a candidate — ${applicant.name}`,
@@ -206,13 +214,18 @@ export const assignApplicant = CatchAsyncError(
           data: {
             candidateName: applicant.name,
             candidateEmail: applicant.email,
-            position: (applicant as any).jobId ? undefined : "General submission",
+            candidatePhone: applicant.phone || null,
+            candidateLinkedin: applicant.linkedin || null,
+            candidateMessage: applicant.message || null,
+            stage: applicant.stage,
+            position: (applicant as any).jobId?.title ?? "General submission",
+            submittedAt: applicant.createdAt,
             adminUrl: `${process.env.ADMIN_DASHBOARD_URL}/applicants`,
           },
+          attachments,
         });
       } catch (mailError: any) {
         console.error("Assignment email failed:", mailError);
-        // don't fail the request just because the notification email failed
       }
     }
 

@@ -1,13 +1,49 @@
 <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
   <h2 style="color: #a21caf;">You've been assigned a candidate</h2>
   <p>Hi,</p>
-  <p><strong><%= candidateName %></strong> (<%= candidateEmail %>) has been assigned to you for review.</p>
-  <% if (position) { %>
-    <p>Position: <%= position %></p>
+  <p><strong><%= candidateName %></strong> has been assigned to you for review.</p>
+
+  <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px;">
+    <tr>
+      <td style="padding: 6px 0; color: #64748b; width: 120px;">Email</td>
+      <td style="padding: 6px 0;"><a href="mailto:<%= candidateEmail %>" style="color:#c026d3; text-decoration:none;"><%= candidateEmail %></a></td>
+    </tr>
+    <% if (candidatePhone) { %>
+    <tr>
+      <td style="padding: 6px 0; color: #64748b;">Phone</td>
+      <td style="padding: 6px 0;"><a href="tel:<%= candidatePhone %>" style="color:#c026d3; text-decoration:none;"><%= candidatePhone %></a></td>
+    </tr>
+    <% } %>
+    <% if (candidateLinkedin) { %>
+    <tr>
+      <td style="padding: 6px 0; color: #64748b;">LinkedIn</td>
+      <td style="padding: 6px 0;"><a href="<%= candidateLinkedin %>" style="color:#c026d3; text-decoration:none;">View profile</a></td>
+    </tr>
+    <% } %>
+    <tr>
+      <td style="padding: 6px 0; color: #64748b;">Position</td>
+      <td style="padding: 6px 0;"><%= position %></td>
+    </tr>
+    <tr>
+      <td style="padding: 6px 0; color: #64748b;">Stage</td>
+      <td style="padding: 6px 0;"><%= stage %></td>
+    </tr>
+    <% if (submittedAt) { %>
+    <tr>
+      <td style="padding: 6px 0; color: #64748b;">Applied</td>
+      <td style="padding: 6px 0;"><%= new Date(submittedAt).toLocaleDateString() %></td>
+    </tr>
+    <% } %>
+  </table>
+
+  <% if (candidateMessage) { %>
+    <div style="margin: 16px 0; padding: 12px; background: #faf5ff; border-radius: 8px;">
+      <p style="margin: 0 0 4px; color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em;">Cover message</p>
+      <p style="margin: 0; white-space: pre-wrap;"><%= candidateMessage %></p>
+    </div>
   <% } %>
-  <p>
-    <a href="<%= adminUrl %>" style="display:inline-block; background:#c026d3; color:#fff; padding:10px 18px; border-radius:8px; text-decoration:none;">
-      View in dashboard
-    </a>
+
+ <p style="color: #64748b; font-size: 13px;">
+    The candidate's CV is attached to this email.
   </p>
 </div>

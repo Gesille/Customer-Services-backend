@@ -26,11 +26,16 @@ interface EmailOptions {
   template: string;          
   data: { [key: string]: any };
   replyTo?: string;
+   attachments?: {
+    filename: string;
+    content: Buffer;
+    contentType?: string;
+  }[];
 }
 
 // ─── Main sendMail function ───────────────────────────────────────────────────
 const sendMail = async (options: EmailOptions): Promise<void> => {
-  const { email, subject, template, data, replyTo } = options;
+  const { email, subject, template, data, replyTo, attachments } = options;
 
   const templatePath = path.join(__dirname, "../mails", template);
   const html = await ejs.renderFile(templatePath, data);
@@ -40,6 +45,7 @@ const sendMail = async (options: EmailOptions): Promise<void> => {
     to:      Array.isArray(email) ? email.join(",") : email,
     subject,
     html,
+    attachments,
     ...(replyTo ? { replyTo } : {}),
   });
 
