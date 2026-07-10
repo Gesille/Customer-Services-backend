@@ -25,7 +25,7 @@ export const submitCV = CatchAsyncError(
         phone: phone || undefined,
         message: message || "",
         linkedin: linkedin || undefined,
-        jobId: jobId ? String(jobId) : undefined, // presence of jobId marks it as a "career" application
+        jobId: jobId ? String(jobId) : undefined, 
         attachments: [
           {
             name: cvFileName || `CV_${name}.pdf`,
