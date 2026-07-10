@@ -7,6 +7,22 @@ export interface AttachmentSubdocument extends Types.Subdocument {
   createdAt: Date;
 }
 
+export interface NoteSubdocument extends Types.Subdocument {
+  text:      string;
+  author:    string;
+  createdAt: Date;
+}
+
+export const STAGES = [
+  'New',
+  'Reviewing',
+  'Interview Scheduled',
+  'Second Interview',
+  'Offered',
+  'Rejected',
+  'Hired',
+] as const;
+
 export interface ApplicantDocument extends Document {
   name:        string;
   email:       string;
@@ -15,6 +31,8 @@ export interface ApplicantDocument extends Document {
   linkedin?:   string;
   jobId?:      string;
   stage:       string;
+  assignedTo?: string;
+  notes:       Types.DocumentArray<NoteSubdocument>;
   attachments: Types.DocumentArray<AttachmentSubdocument>;
   createdAt:   Date;
 }
@@ -28,6 +46,14 @@ const attachmentSchema = new Schema<AttachmentSubdocument>(
   { timestamps: { createdAt: true, updatedAt: false } },
 );
 
+const noteSchema = new Schema<NoteSubdocument>(
+  {
+    text:   { type: String, required: true },
+    author: { type: String, required: true },
+  },
+  { timestamps: { createdAt: true, updatedAt: false } },
+);
+
 const applicantSchema = new Schema<ApplicantDocument>(
   {
     name:        { type: String, required: true, trim: true },
@@ -37,7 +63,9 @@ const applicantSchema = new Schema<ApplicantDocument>(
     linkedin:    { type: String },
     jobId:       { type: String },
 
-    stage:       { type: String, default: 'New' },
+    stage:       { type: String, enum: STAGES, default: 'New', index: true },
+    assignedTo:  { type: String },
+    notes:       { type: [noteSchema], default: [] },
     attachments: { type: [attachmentSchema], default: [] },
   },
   { timestamps: true },

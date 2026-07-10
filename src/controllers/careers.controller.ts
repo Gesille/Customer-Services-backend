@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import { CatchAsyncError } from "../middleware/catchAsyncError";
 import ErrorHandler from "../middleware/ErrorHandler";
-import { ApplicantModel } from "../models/applicant.model";
+import { ApplicantModel, STAGES } from "../models/applicant.model";
 import sendMail from "../utils/sendMail";
 
 
@@ -138,5 +138,77 @@ export const downloadCV = CatchAsyncError(
       console.error("Download CV error:", error);
       return next(new ErrorHandler(error.message || "Failed to download CV", 500));
     }
+  }
+);
+
+
+export const updateApplicantStage = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+    const { stage } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id as any)) {
+      return next(new ErrorHandler("Invalid applicant ID", 400));
+    }
+    if (!STAGES.includes(stage)) {
+      return next(new ErrorHandler("Invalid stage value", 400));
+    }
+
+    const applicant = await ApplicantModel.findByIdAndUpdate(
+      id,
+      { stage },
+      { new: true }
+    ).lean();
+
+    if (!applicant) return next(new ErrorHandler("Applicant not found", 404));
+
+    res.status(200).json({ success: true, stage: applicant.stage });
+  }
+);
+
+// PATCH /api/v1/cv/:id/assign
+export const assignApplicant = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+    const { assignedTo } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id as any)) {
+      return next(new ErrorHandler("Invalid applicant ID", 400));
+    }
+
+    const applicant = await ApplicantModel.findByIdAndUpdate(
+      id,
+      { assignedTo: assignedTo || undefined },
+      { new: true }
+    ).lean();
+
+    if (!applicant) return next(new ErrorHandler("Applicant not found", 404));
+
+    res.status(200).json({ success: true, assignedTo: applicant.assignedTo ?? null });
+  }
+);
+
+// POST /api/v1/cv/:id/notes
+export const addApplicantNote = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+    const { text, author } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id as any)) {
+      return next(new ErrorHandler("Invalid applicant ID", 400));
+    }
+    if (!text || !author) {
+      return next(new ErrorHandler("Note text and author are required", 400));
+    }
+
+    const applicant = await ApplicantModel.findByIdAndUpdate(
+      id,
+      { $push: { notes: { text, author } } },
+      { new: true }
+    ).lean();
+
+    if (!applicant) return next(new ErrorHandler("Applicant not found", 404));
+
+    res.status(201).json({ success: true, notes: applicant.notes });
   }
 );
