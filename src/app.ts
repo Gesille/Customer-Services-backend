@@ -18,6 +18,7 @@ app.use(
     origin: [
       "https://restaurant-feedback-dashboard.vercel.app",
       "https://restaurant-feedback-frontend-lovat.vercel.app",
+      "http://localhost:3000"
     ],
     credentials: true,
   })
