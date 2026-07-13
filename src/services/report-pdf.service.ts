@@ -5,18 +5,14 @@ import fs from 'fs';
 import { feedbackAnalyticsService } from './feedback-analytics.service';
 import { restaurantService } from './restaurant.service';
 
-// ── Palette (mirrors the app's fuchsia/pink/purple ledger system) ──────────
-const INK = '#0f172a';       // slate-900
-const MUTED = '#64748b';     // slate-500
-const FAINT = '#94a3b8';     // slate-400
-const HAIRLINE = '#fae8ff';  // fuchsia-100
-const TINT = '#fdf4ff';      // fuchsia-50
-const FUCHSIA_700 = '#a21caf';
-const GRADIENT_STOPS: [number, string][] = [
-  [0, '#ec4899'],   // pink-500
-  [0.5, '#c026d3'], // fuchsia-600
-  [1, '#9333ea'],   // purple-600
-];
+// ── Palette (navy/gold — matches the NextIntl brand system) ────────────────
+const NAVY = '#131B2E';
+const GOLD = '#C9A227';
+const MUTED = '#5B6472';
+const FAINT = '#9CA0AC';
+const HAIRLINE = '#E2E4E9';
+const TINT = '#F7F5EE';       // warm cream, used for header rows / zebra stripes
+const GOLD_TRACK = '#F0E9D2'; // pale gold track for bars
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -92,33 +88,26 @@ class ReportPdfService {
 
   // ── Helpers ────────────────────────────────────────────────────────────
 
-  private gradientRect(doc: PDFKit.PDFDocument, x: number, y: number, w: number, h: number, radius = 0) {
-    const grad = doc.linearGradient(x, y, x + w, y);
-    GRADIENT_STOPS.forEach(([offset, color]) => grad.stop(offset, color));
-    if (radius > 0) doc.roundedRect(x, y, w, h, radius);
-    else doc.rect(x, y, w, h);
-    doc.fill(grad);
-  }
-
   private card(doc: PDFKit.PDFDocument, x: number, y: number, w: number, h: number) {
-    doc.roundedRect(x, y, w, h, 10).fillColor('#ffffff').fill();
-    doc.roundedRect(x, y, w, h, 10).strokeColor(HAIRLINE).lineWidth(1).stroke();
+    doc.roundedRect(x, y, w, h, 6).fillColor('#ffffff').fill();
+    doc.roundedRect(x, y, w, h, 6).strokeColor(HAIRLINE).lineWidth(1).stroke();
   }
 
-  private ratingToTint(rating: number): string {
-    // interpolate between fuchsia-50 and a stronger fuchsia based on 0–5 rating
-    const t = Math.min(1, Math.max(0, rating / 5));
-    const alpha = 0.08 + t * 0.22;
-    return `rgba(192, 38, 211, ${alpha})`;
+  private eyebrow(doc: PDFKit.PDFDocument, text: string, y: number) {
+    doc.font(this.fonts.monoMedium).fontSize(8).fillColor(GOLD)
+      .text(text, 50, y, { characterSpacing: 1.4 });
+  }
+
+  private ratingOpacity(rating: number): number {
+    return 0.08 + Math.min(1, Math.max(0, rating / 5)) * 0.28;
   }
 
   // ── Sections ───────────────────────────────────────────────────────────
 
   private drawHeader(doc: PDFKit.PDFDocument, name: string, location: string, monthLabel: string) {
-    doc.font(this.fonts.monoMedium).fontSize(9).fillColor(FUCHSIA_700)
-      .text('[ ANALYTICS ]', 50, 50, { characterSpacing: 1.2 });
+    this.eyebrow(doc, 'ANALYTICS', 50);
 
-    doc.font(this.fonts.displayItalic).fontSize(24).fillColor(INK)
+    doc.font(this.fonts.displayItalic).fontSize(24).fillColor(NAVY)
       .text(name, 50, 68);
 
     if (location) {
@@ -126,12 +115,13 @@ class ReportPdfService {
         .text(location, 50, doc.y + 2);
     }
 
-    doc.font(this.fonts.mono).fontSize(10).fillColor(INK)
+    doc.font(this.fonts.mono).fontSize(10).fillColor(NAVY)
       .text(`Feedback Report — ${monthLabel}`, 50, doc.y + 8);
 
-    const barY = doc.y + 12;
-    this.gradientRect(doc, 50, barY, 495, 3, 1.5);
-    doc.y = barY + 20;
+    const lineY = doc.y + 14;
+    doc.moveTo(50, lineY).lineTo(545, lineY).lineWidth(0.75).strokeColor(HAIRLINE).stroke();
+    doc.moveTo(50, lineY).lineTo(110, lineY).lineWidth(2).strokeColor(GOLD).stroke();
+    doc.y = lineY + 20;
   }
 
   private drawStatCards(
@@ -154,20 +144,20 @@ class ReportPdfService {
 
     const gap = 10;
     const cardW = (495 - gap * 3) / 4;
-    const cardH = 54;
+    const cardH = 56;
     const y = doc.y;
 
     stats.forEach((s, i) => {
       const x = 50 + i * (cardW + gap);
       this.card(doc, x, y, cardW, cardH);
-      this.gradientRect(doc, x + 10, y + 10, 20, 20, 5);
-      doc.font(this.fonts.displayItalic).fontSize(16).fillColor(INK)
-        .text(s.value, x + 10, y + 34, { width: cardW - 20 });
-      doc.font(this.fonts.body).fontSize(7).fillColor(MUTED)
-        .text(s.label, x + 10, y + 34 + 18, { width: cardW - 20 });
+      doc.moveTo(x + 12, y + 12).lineTo(x + 12, y + 44).lineWidth(2).strokeColor(GOLD).stroke();
+      doc.font(this.fonts.displayItalic).fontSize(17).fillColor(NAVY)
+        .text(s.value, x + 20, y + 12, { width: cardW - 30 });
+      doc.font(this.fonts.body).fontSize(7.5).fillColor(MUTED)
+        .text(s.label, x + 20, y + 34, { width: cardW - 30 });
     });
 
-    doc.y = y + cardH + 22;
+    doc.y = y + cardH + 24;
   }
 
   private drawWaiterTable(
@@ -176,40 +166,36 @@ class ReportPdfService {
   ) {
     if (doc.y > 600) doc.addPage();
 
-    doc.font(this.fonts.monoMedium).fontSize(9).fillColor(FUCHSIA_700)
-      .text('[ WAITER PERFORMANCE ]', 50, doc.y, { characterSpacing: 1 });
-    doc.moveDown(0.6);
+    this.eyebrow(doc, 'WAITER PERFORMANCE', doc.y);
+    doc.moveDown(0.9);
 
     const colX = [60, 280, 370, 460];
-    const rowH = 22;
+    const rowH = 24;
     let y = doc.y;
 
-    // header row
-    doc.roundedRect(50, y, 495, rowH, 6).fillColor(TINT).fill();
+    doc.rect(50, y, 495, rowH).fillColor(TINT).fill();
+    doc.moveTo(50, y + rowH).lineTo(545, y + rowH).lineWidth(1).strokeColor(GOLD).stroke();
     doc.font(this.fonts.monoMedium).fontSize(8).fillColor(MUTED);
-    doc.text('WAITER', colX[0], y + 7);
-    doc.text('FEEDBACK #', colX[1], y + 7);
-    doc.text('OVERALL', colX[2], y + 7);
-    doc.text('FRIENDLINESS', colX[3], y + 7);
+    doc.text('WAITER', colX[0], y + 8);
+    doc.text('FEEDBACK #', colX[1], y + 8);
+    doc.text('OVERALL', colX[2], y + 8);
+    doc.text('FRIENDLINESS', colX[3], y + 8);
     y += rowH;
 
     const rows = waiters.slice(0, 15);
     rows.forEach((w, i) => {
       if (y > 730) { doc.addPage(); y = 50; }
-      if (i % 2 === 1) {
-        doc.rect(50, y, 495, rowH).fillColor('#fdfbff').fill();
-      }
-      doc.font(this.fonts.body).fontSize(9).fillColor(INK);
-      doc.text(w.waiter_name, colX[0], y + 6, { width: 210 });
+      doc.font(this.fonts.body).fontSize(9).fillColor(NAVY);
+      doc.text(w.waiter_name, colX[0], y + 7, { width: 210 });
       doc.font(this.fonts.mono).fillColor(MUTED);
-      doc.text(String(w.feedbackCount), colX[1], y + 6);
-      doc.text((w.averages.overall_rating ?? 0).toFixed(2), colX[2], y + 6);
-      doc.text((w.averages.friendliness_rating ?? 0).toFixed(2), colX[3], y + 6);
+      doc.text(String(w.feedbackCount), colX[1], y + 7);
+      doc.text((w.averages.overall_rating ?? 0).toFixed(2), colX[2], y + 7);
+      doc.text((w.averages.friendliness_rating ?? 0).toFixed(2), colX[3], y + 7);
+      doc.moveTo(50, y + rowH).lineTo(545, y + rowH).lineWidth(0.5).strokeColor(HAIRLINE).stroke();
       y += rowH;
     });
 
-    doc.roundedRect(50, doc.y, 495, y - doc.y, 6).strokeColor(HAIRLINE).lineWidth(1).stroke();
-    doc.y = y + 20;
+    doc.y = y + 22;
   }
 
   private drawDistribution(
@@ -221,9 +207,8 @@ class ReportPdfService {
 
     if (doc.y > 640) doc.addPage();
 
-    doc.font(this.fonts.monoMedium).fontSize(9).fillColor(FUCHSIA_700)
-      .text('[ OVERALL RATING DISTRIBUTION ]', 50, doc.y, { characterSpacing: 1 });
-    doc.moveDown(0.8);
+    this.eyebrow(doc, 'OVERALL RATING DISTRIBUTION', doc.y);
+    doc.moveDown(0.9);
 
     const counts = Object.values(overall.distribution) as number[];
     const maxCount = Math.max(1, ...counts);
@@ -238,11 +223,11 @@ class ReportPdfService {
       doc.font(this.fonts.body).fontSize(9).fillColor(MUTED)
         .text(`${star} star`, 50, y + 2, { width: 42 });
 
-      doc.roundedRect(trackX, y, barMaxWidth, 8, 4).fillColor(HAIRLINE).fill();
-      if (width > 2) this.gradientRect(doc, trackX, y, width, 8, 4);
+      doc.rect(trackX, y, barMaxWidth, 6).fillColor(GOLD_TRACK).fill();
+      if (width > 2) doc.rect(trackX, y, width, 6).fillColor(GOLD).fill();
 
       doc.font(this.fonts.mono).fontSize(9).fillColor(MUTED)
-        .text(String(count), trackX + barMaxWidth + 12, y + 2);
+        .text(String(count), trackX + barMaxWidth + 12, y + 1);
 
       doc.y = y + 16;
     }
@@ -257,9 +242,8 @@ class ReportPdfService {
   ) {
     if (doc.y > 480) doc.addPage();
 
-    doc.font(this.fonts.monoMedium).fontSize(9).fillColor(FUCHSIA_700)
-      .text('[ DAILY BREAKDOWN ]', 50, doc.y, { characterSpacing: 1 });
-    doc.moveDown(0.8);
+    this.eyebrow(doc, 'DAILY BREAKDOWN', doc.y);
+    doc.moveDown(0.9);
 
     const startWeekday = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
     const cellGap = 4;
@@ -280,21 +264,25 @@ class ReportPdfService {
       const dayNum = Number(entry.date.split('-')[2]);
       const hasData = entry.feedbackCount > 0;
 
-      doc.roundedRect(x, y, cellW, cellH, 4)
-        .fillColor(hasData ? this.ratingToTint(entry.averageOverallRating) : '#fdfaff')
-        .fill();
-      doc.roundedRect(x, y, cellW, cellH, 4).strokeColor(HAIRLINE).lineWidth(0.75).stroke();
+      if (hasData) {
+        doc.fillOpacity(this.ratingOpacity(entry.averageOverallRating));
+        doc.roundedRect(x, y, cellW, cellH, 3).fillColor(GOLD).fill();
+        doc.fillOpacity(1);
+      } else {
+        doc.roundedRect(x, y, cellW, cellH, 3).fillColor('#FCFBF8').fill();
+      }
+      doc.roundedRect(x, y, cellW, cellH, 3).strokeColor(HAIRLINE).lineWidth(0.75).stroke();
 
       doc.font(this.fonts.mono).fontSize(7).fillColor(FAINT)
         .text(String(dayNum), x + 5, y + 4);
 
       if (hasData) {
-        doc.font(this.fonts.displayItalic).fontSize(9).fillColor(FUCHSIA_700)
+        doc.font(this.fonts.displayItalic).fontSize(9).fillColor(NAVY)
           .text(entry.averageOverallRating.toFixed(1), x + 5, y + 20);
         doc.font(this.fonts.mono).fontSize(6).fillColor(MUTED)
           .text(`${entry.feedbackCount} fb`, x + 5, y + 30);
       } else {
-        doc.font(this.fonts.mono).fontSize(7).fillColor('#d1c9d6')
+        doc.font(this.fonts.mono).fontSize(7).fillColor('#D7D2C4')
           .text('—', x + 5, y + 20);
       }
 
