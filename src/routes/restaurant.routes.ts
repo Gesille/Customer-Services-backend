@@ -9,10 +9,11 @@ export const restaurantRouter = Router();
 
 restaurantRouter.get ('/',              readLimiter, restaurantController.getAll.bind(restaurantController));
 restaurantRouter.post('/',                           restaurantController.create.bind(restaurantController));
-restaurantRouter.get ('/qr/:token',     readLimiter, qrController.resolveToken.bind(qrController));  
+restaurantRouter.get ('/qr/:token',     readLimiter, qrController.resolveToken.bind(qrController));
+restaurantRouter.get ('/without-qr',    readLimiter, restaurantController.getWithoutQr.bind(restaurantController));
 restaurantRouter.get ('/:id',           readLimiter, restaurantController.getById.bind(restaurantController));
 restaurantRouter.get ('/:id/qr',        readLimiter, qrController.getQrImage.bind(qrController));
 restaurantRouter.get ('/:id/qr/print',  readLimiter, qrController.getPrintPage.bind(qrController));
-
+restaurantRouter.post('/:id/qr/generate',             qrController.generateQr.bind(qrController));
 
 export default router;

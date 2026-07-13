@@ -58,6 +58,27 @@ export class QrController {
       res.status(500).json(errorResponse('Failed to resolve QR token', err.message));
     }
   }
+  async generateQr(req: Request, res: Response): Promise<void> {
+  try {
+    const id = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(id as string)) {
+      res.status(400).json(errorResponse('Invalid restaurant ID')); return;
+    }
+
+    await restaurantService.markQrGenerated(id as string);
+    const { dataUrl, restaurant, feedbackUrl } = await qrService.generateQrDataUrl(id as string);
+
+    res.status(200).json(successResponse('QR generated', {
+      id: restaurant.id,
+      name: restaurant.x_name,
+      dataUrl,
+      feedbackUrl,
+    }));
+  } catch (err: any) {
+    const status = err.message === 'Restaurant not found' ? 404 : 500;
+    res.status(status).json(errorResponse(err.message));
+  }
+}
 }
 
 export const qrController = new QrController();

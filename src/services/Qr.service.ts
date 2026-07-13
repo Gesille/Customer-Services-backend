@@ -39,6 +39,7 @@ export class QrService {
 
     return { dataUrl, restaurant, feedbackUrl };
   }
+  
 }
 
 export const qrService = new QrService();

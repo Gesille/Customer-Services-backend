@@ -5,6 +5,7 @@ export interface Restaurant {
   x_location:      string;
   x_manager_email: string;
   x_qr_token:      string;
+  x_qr_generated:  boolean;
 }
 
 export interface CreateRestaurantDto {
@@ -19,6 +20,7 @@ export interface RestaurantDocument extends Document {
   x_location:      string;
   x_manager_email: string;
   x_qr_token:      string;
+  x_qr_generated:  boolean;
 }
 
 const restaurantSchema = new Schema<RestaurantDocument>(
@@ -27,6 +29,7 @@ const restaurantSchema = new Schema<RestaurantDocument>(
     x_location:      { type: String, required: true, trim: true, maxlength: 200 },
     x_manager_email: { type: String, required: true, trim: true, lowercase: true },
     x_qr_token:      { type: String, required: true, unique: true, index: true },
+    x_qr_generated:  { type: Boolean, required: true, default: false },
   },
   { timestamps: true },
 );
