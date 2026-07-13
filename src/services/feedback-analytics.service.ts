@@ -67,6 +67,8 @@ export interface TrendPoint {
 
 export interface RestaurantLeaderboardEntry {
   restaurantId: string;
+  name: string;
+  location: string | null;
   feedbackCount: number;
   averageOverallRating: number;
 }
@@ -266,23 +268,34 @@ class FeedbackAnalyticsService {
 
   // ── Global-only: compares restaurants against each other ──
   async getRestaurantLeaderboard(): Promise<RestaurantLeaderboardEntry[]> {
-    const rows = await FeedbackModel.aggregate([
-      {
-        $group: {
-          _id: '$x_restaurant_id',
-          feedbackCount: { $sum: 1 },
-          averageOverallRating: { $avg: '$x_overall_rating' },
-        },
+  const rows = await FeedbackModel.aggregate([
+    {
+      $group: {
+        _id: '$x_restaurant_id',
+        feedbackCount: { $sum: 1 },
+        averageOverallRating: { $avg: '$x_overall_rating' },
       },
-      { $sort: { averageOverallRating: -1 } },
-    ]);
+    },
+    {
+      $lookup: {
+        from: 'restaurants', // the actual MongoDB collection name — see note below
+        localField: '_id',
+        foreignField: '_id',
+        as: 'restaurant',
+      },
+    },
+    { $unwind: { path: '$restaurant', preserveNullAndEmptyArrays: true } },
+    { $sort: { averageOverallRating: -1 } },
+  ]);
 
-    return rows.map(r => ({
-      restaurantId: r._id.toString(),
-      feedbackCount: r.feedbackCount,
-      averageOverallRating: round(r.averageOverallRating),
-    }));
-  }
+  return rows.map(r => ({
+    restaurantId: r._id.toString(),
+    name: r.restaurant?.x_name ?? 'Unknown restaurant',
+    location: r.restaurant?.x_location ?? null,
+    feedbackCount: r.feedbackCount,
+    averageOverallRating: round(r.averageOverallRating),
+  }));
+}
   // ── Every day in a given month, zero-filled for days with no feedback ──
   async getDailyReport(restaurantId: string, year: number, month: number): Promise<DailyReportEntry[]> {
     const start = new Date(Date.UTC(year, month - 1, 1));
