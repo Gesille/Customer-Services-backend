@@ -1,9 +1,10 @@
 import mongoose from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 import {
-  RestaurantModel,
+ 
   CreateRestaurantDto,
   Restaurant,
+  RestaurantModel,
 } from '../models/restaurant.model';
 
 function toRestaurant(doc: any): Restaurant {
@@ -12,6 +13,11 @@ function toRestaurant(doc: any): Restaurant {
     x_name:          doc.x_name,
     x_location:      doc.x_location,
     x_manager_email: doc.x_manager_email,
+    x_website:       doc.x_website,
+    x_image:         doc.x_image,
+    x_tables:        doc.x_tables,
+    x_color:         doc.x_color,
+    x_status:        doc.x_status,
     x_qr_token:      doc.x_qr_token,
     x_qr_generated:  Boolean(doc.x_qr_generated),
   };
