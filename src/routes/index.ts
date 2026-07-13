@@ -12,4 +12,5 @@ rootRouter.use('/feedbacks',feedbackRouter);
 rootRouter.use('/users',userRouter);
 rootRouter.use('/cv',cvRouter);
 rootRouter.use('/analytics', feedbackAnalyticsRouter);
+rootRouter.use('/GlobalAnalytics', feedbackAnalyticsRouter);
 export default rootRouter;
