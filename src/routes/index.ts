@@ -4,6 +4,7 @@ import { feedbackRouter } from './feedback.routes';
 import userRouter from './user.route';
 import { cvRouter } from './cv.route';
 import feedbackAnalyticsRouter from './feedback-analytics.routes';
+import jobRouter from './job.route';
 
 
 
@@ -13,5 +14,5 @@ rootRouter.use('/feedbacks',feedbackRouter);
 rootRouter.use('/users',userRouter);
 rootRouter.use('/cv',cvRouter);
 rootRouter.use('/analytics', feedbackAnalyticsRouter);
-
+rootRouter.use('/jobs', jobRouter);
 export default rootRouter;
