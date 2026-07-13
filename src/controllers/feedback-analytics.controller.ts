@@ -10,8 +10,9 @@ const isValidId = (id: unknown) =>
 export class FeedbackAnalyticsController {
   async getOverview(req: Request, res: Response): Promise<void> {
     try {
-      const { restaurantId } = req.params;
-      if (!isValidId(restaurantId)) {
+      const { restaurantId } = req.params; // now optional — route no longer requires it
+
+      if (restaurantId && !isValidId(restaurantId)) {
         res.status(400).json(errorResponse('Invalid restaurant ID')); return;
       }
 
@@ -25,7 +26,8 @@ export class FeedbackAnalyticsController {
   async getWaiterPerformance(req: Request, res: Response): Promise<void> {
     try {
       const { restaurantId } = req.params;
-      if (!isValidId(restaurantId)) {
+
+      if (restaurantId && !isValidId(restaurantId)) {
         res.status(400).json(errorResponse('Invalid restaurant ID')); return;
       }
 
@@ -39,7 +41,8 @@ export class FeedbackAnalyticsController {
   async getRatingDistribution(req: Request, res: Response): Promise<void> {
     try {
       const { restaurantId } = req.params;
-      if (!isValidId(restaurantId)) {
+
+      if (restaurantId && !isValidId(restaurantId)) {
         res.status(400).json(errorResponse('Invalid restaurant ID')); return;
       }
 
@@ -53,7 +56,8 @@ export class FeedbackAnalyticsController {
   async getEvaluators(req: Request, res: Response): Promise<void> {
     try {
       const { restaurantId } = req.params;
-      if (!isValidId(restaurantId)) {
+
+      if (restaurantId && !isValidId(restaurantId)) {
         res.status(400).json(errorResponse('Invalid restaurant ID')); return;
       }
 
@@ -70,7 +74,8 @@ export class FeedbackAnalyticsController {
   async getTrend(req: Request, res: Response): Promise<void> {
     try {
       const { restaurantId } = req.params;
-      if (!isValidId(restaurantId)) {
+
+      if (restaurantId && !isValidId(restaurantId)) {
         res.status(400).json(errorResponse('Invalid restaurant ID')); return;
       }
 
