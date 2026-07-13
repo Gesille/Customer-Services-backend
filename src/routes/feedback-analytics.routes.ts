@@ -36,5 +36,16 @@ feedbackAnalyticsRouter.get('/distribution/:restaurantId', readLimiter, feedback
 feedbackAnalyticsRouter.get('/evaluators/:restaurantId', readLimiter, feedbackAnalyticsController.getEvaluators.bind(feedbackAnalyticsController));
 feedbackAnalyticsRouter.get('/trend/:restaurantId', readLimiter, feedbackAnalyticsController.getTrend.bind(feedbackAnalyticsController));
 
-
+feedbackAnalyticsRouter.get(
+  '/daily/:restaurantId', readLimiter,
+  feedbackAnalyticsController.getDailyReport.bind(feedbackAnalyticsController),
+);
+feedbackAnalyticsRouter.get(
+  '/monthly/:restaurantId', readLimiter,
+  feedbackAnalyticsController.getMonthlyReport.bind(feedbackAnalyticsController),
+);
+feedbackAnalyticsRouter.get(
+  '/report/:restaurantId/pdf', readLimiter,
+  feedbackAnalyticsController.getReportPdf.bind(feedbackAnalyticsController),
+);
 export default feedbackAnalyticsRouter;

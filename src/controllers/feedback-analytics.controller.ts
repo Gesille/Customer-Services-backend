@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { feedbackAnalyticsService } from '../services/feedback-analytics.service';
 import { errorResponse, successResponse } from '../models/response.model';
+import { reportPdfService } from '../services/report-pdf.service';
 
 const isValidId = (id: unknown) =>
   typeof id === 'string' && mongoose.Types.ObjectId.isValid(id);
@@ -97,6 +98,60 @@ export class FeedbackAnalyticsController {
     res.status(500).json(errorResponse('Failed to fetch restaurant leaderboard', err.message));
   }
 }
+async getDailyReport(req: Request, res: Response): Promise<void> {
+    try {
+      const { restaurantId } = req.params;
+      if (!restaurantId || !isValidId(restaurantId)) {
+        res.status(400).json(errorResponse('Invalid restaurant ID')); return;
+      }
+
+      const now = new Date();
+      const year = Number(req.query.year) || now.getUTCFullYear();
+      const month = Number(req.query.month) || now.getUTCMonth() + 1;
+
+      if (month < 1 || month > 12) {
+        res.status(400).json(errorResponse('month must be between 1 and 12')); return;
+      }
+
+      const report = await feedbackAnalyticsService.getDailyReport(restaurantId as string, year, month);
+      res.status(200).json(successResponse('Daily report fetched', report));
+    } catch (err: any) {
+      res.status(500).json(errorResponse('Failed to fetch daily report', err.message));
+    }
+  }
+
+  async getMonthlyReport(req: Request, res: Response): Promise<void> {
+    try {
+      const { restaurantId } = req.params;
+      if (!restaurantId || !isValidId(restaurantId)) {
+        res.status(400).json(errorResponse('Invalid restaurant ID')); return;
+      }
+
+      const year = Number(req.query.year) || new Date().getUTCFullYear();
+      const report = await feedbackAnalyticsService.getMonthlyReport(restaurantId as string, year);
+      res.status(200).json(successResponse('Monthly report fetched', report));
+    } catch (err: any) {
+      res.status(500).json(errorResponse('Failed to fetch monthly report', err.message));
+    }
+  }
+
+  async getReportPdf(req: Request, res: Response): Promise<void> {
+    try {
+      const { restaurantId } = req.params;
+      if (!restaurantId || !isValidId(restaurantId)) {
+        res.status(400).json(errorResponse('Invalid restaurant ID')); return;
+      }
+
+      const now = new Date();
+      const year = Number(req.query.year) || now.getUTCFullYear();
+      const month = Number(req.query.month) || now.getUTCMonth() + 1;
+
+      await reportPdfService.streamRestaurantReport(res, restaurantId as string, year, month);
+    } catch (err: any) {
+      const status = err.message === 'Restaurant not found' ? 404 : 500;
+      res.status(status).json(errorResponse('Failed to generate report PDF', err.message));
+    }
+  }
 }
 
 export const feedbackAnalyticsController = new FeedbackAnalyticsController();

@@ -70,9 +70,19 @@ export interface RestaurantLeaderboardEntry {
   feedbackCount: number;
   averageOverallRating: number;
 }
+export interface DailyReportEntry {
+  date: string; // YYYY-MM-DD
+  feedbackCount: number;
+  averageOverallRating: number;
+}
 
+export interface MonthlyReportEntry {
+  month: string; // YYYY-MM
+  feedbackCount: number;
+  averageOverallRating: number;
+}
 class FeedbackAnalyticsService {
-  // ── Overview: counts, averages across every rating field, recommendation split ──
+
   async getOverview(restaurantId?: string): Promise<OverviewStats> {
     const [result] = await FeedbackModel.aggregate([
       { $match: matchStage(restaurantId) },
@@ -272,6 +282,68 @@ class FeedbackAnalyticsService {
       feedbackCount: r.feedbackCount,
       averageOverallRating: round(r.averageOverallRating),
     }));
+  }
+  // ── Every day in a given month, zero-filled for days with no feedback ──
+  async getDailyReport(restaurantId: string, year: number, month: number): Promise<DailyReportEntry[]> {
+    const start = new Date(Date.UTC(year, month - 1, 1));
+    const end = new Date(Date.UTC(year, month, 1)); // exclusive, first of next month
+
+    const rows = await FeedbackModel.aggregate([
+      { $match: { x_restaurant_id: toObjectId(restaurantId), x_date: { $gte: start, $lt: end } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$x_date' } },
+          feedbackCount: { $sum: 1 },
+          averageOverallRating: { $avg: '$x_overall_rating' },
+        },
+      },
+    ]);
+
+    const rowMap = new Map(rows.map(r => [r._id as string, r]));
+    const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    const result: DailyReportEntry[] = [];
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const row = rowMap.get(dateStr);
+      result.push({
+        date: dateStr,
+        feedbackCount: row?.feedbackCount ?? 0,
+        averageOverallRating: round(row?.averageOverallRating),
+      });
+    }
+    return result;
+  }
+
+  // ── Every month in a given year, zero-filled ──
+  async getMonthlyReport(restaurantId: string, year: number): Promise<MonthlyReportEntry[]> {
+    const start = new Date(Date.UTC(year, 0, 1));
+    const end = new Date(Date.UTC(year + 1, 0, 1));
+
+    const rows = await FeedbackModel.aggregate([
+      { $match: { x_restaurant_id: toObjectId(restaurantId), x_date: { $gte: start, $lt: end } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m', date: '$x_date' } },
+          feedbackCount: { $sum: 1 },
+          averageOverallRating: { $avg: '$x_overall_rating' },
+        },
+      },
+    ]);
+
+    const rowMap = new Map(rows.map(r => [r._id as string, r]));
+    const result: MonthlyReportEntry[] = [];
+
+    for (let m = 1; m <= 12; m++) {
+      const key = `${year}-${String(m).padStart(2, '0')}`;
+      const row = rowMap.get(key);
+      result.push({
+        month: key,
+        feedbackCount: row?.feedbackCount ?? 0,
+        averageOverallRating: round(row?.averageOverallRating),
+      });
+    }
+    return result;
   }
 }
 
