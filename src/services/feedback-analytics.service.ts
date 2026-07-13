@@ -4,6 +4,10 @@ import { FeedbackModel, Rating, Recommendation } from '../models/feedback.model'
 
 const toObjectId = (id: string) => new mongoose.Types.ObjectId(id);
 
+// ── Builds the $match filter. Empty object when restaurantId is absent = global (no filter). ──
+const matchStage = (restaurantId?: string) =>
+  restaurantId ? { x_restaurant_id: toObjectId(restaurantId) } : {};
+
 const RATING_FIELDS = [
   'x_friendliness_rating', 'x_attentiveness_rating', 'x_menu_knowledge_rating',
   'x_service_speed_rating', 'x_food_quality_rating', 'x_cleanliness_rating', 'x_overall_rating',
@@ -61,11 +65,17 @@ export interface TrendPoint {
   averageOverallRating: number;
 }
 
+export interface RestaurantLeaderboardEntry {
+  restaurantId: string;
+  feedbackCount: number;
+  averageOverallRating: number;
+}
+
 class FeedbackAnalyticsService {
   // ── Overview: counts, averages across every rating field, recommendation split ──
-  async getOverview(restaurantId: string): Promise<OverviewStats> {
+  async getOverview(restaurantId?: string): Promise<OverviewStats> {
     const [result] = await FeedbackModel.aggregate([
-      { $match: { x_restaurant_id: toObjectId(restaurantId) } },
+      { $match: matchStage(restaurantId) },
       {
         $group: {
           _id: null,
@@ -122,9 +132,9 @@ class FeedbackAnalyticsService {
   }
 
   // ── Per-waiter averages, sorted by overall rating descending ──
-  async getWaiterPerformance(restaurantId: string): Promise<WaiterPerformance[]> {
+  async getWaiterPerformance(restaurantId?: string): Promise<WaiterPerformance[]> {
     const rows = await FeedbackModel.aggregate([
-      { $match: { x_restaurant_id: toObjectId(restaurantId) } },
+      { $match: matchStage(restaurantId) },
       {
         $group: {
           _id: '$x_waiter_name',
@@ -157,7 +167,7 @@ class FeedbackAnalyticsService {
   }
 
   // ── Histogram (1-5 counts) for every rating field ──
-  async getRatingDistribution(restaurantId: string): Promise<RatingDistributionEntry[]> {
+  async getRatingDistribution(restaurantId?: string): Promise<RatingDistributionEntry[]> {
     const facetStages = Object.fromEntries(
       RATING_FIELDS.map(f => [
         f,
@@ -168,7 +178,7 @@ class FeedbackAnalyticsService {
     );
 
     const [result] = await FeedbackModel.aggregate([
-      { $match: { x_restaurant_id: toObjectId(restaurantId) } },
+      { $match: matchStage(restaurantId) },
       { $facet: facetStages },
     ]);
 
@@ -182,11 +192,11 @@ class FeedbackAnalyticsService {
 
   // ── Paginated list of who submitted feedback ──
   async getEvaluators(
-    restaurantId: string,
+    restaurantId?: string,
     page = 1,
     pageSize = 20,
   ): Promise<EvaluatorsPage> {
-    const match = { x_restaurant_id: toObjectId(restaurantId) };
+    const match = matchStage(restaurantId);
     const skip = (page - 1) * pageSize;
 
     const [total, rows] = await Promise.all([
@@ -220,13 +230,13 @@ class FeedbackAnalyticsService {
 
   // ── Feedback volume + avg overall rating bucketed by day/week/month ──
   async getTrend(
-    restaurantId: string,
+    restaurantId?: string,
     granularity: 'day' | 'week' | 'month' = 'day',
   ): Promise<TrendPoint[]> {
     const dateFormat = { day: '%Y-%m-%d', week: '%G-W%V', month: '%Y-%m' }[granularity];
 
     const rows = await FeedbackModel.aggregate([
-      { $match: { x_restaurant_id: toObjectId(restaurantId) } },
+      { $match: matchStage(restaurantId) },
       {
         $group: {
           _id: { $dateToString: { format: dateFormat, date: '$x_date' } },
@@ -239,6 +249,26 @@ class FeedbackAnalyticsService {
 
     return rows.map(r => ({
       bucket: r._id,
+      feedbackCount: r.feedbackCount,
+      averageOverallRating: round(r.averageOverallRating),
+    }));
+  }
+
+  // ── Global-only: compares restaurants against each other ──
+  async getRestaurantLeaderboard(): Promise<RestaurantLeaderboardEntry[]> {
+    const rows = await FeedbackModel.aggregate([
+      {
+        $group: {
+          _id: '$x_restaurant_id',
+          feedbackCount: { $sum: 1 },
+          averageOverallRating: { $avg: '$x_overall_rating' },
+        },
+      },
+      { $sort: { averageOverallRating: -1 } },
+    ]);
+
+    return rows.map(r => ({
+      restaurantId: r._id.toString(),
       feedbackCount: r.feedbackCount,
       averageOverallRating: round(r.averageOverallRating),
     }));

@@ -89,6 +89,14 @@ export class FeedbackAnalyticsController {
       res.status(500).json(errorResponse('Failed to fetch trend', err.message));
     }
   }
+  async getRestaurantLeaderboard(req: Request, res: Response): Promise<void> {
+  try {
+    const leaderboard = await feedbackAnalyticsService.getRestaurantLeaderboard();
+    res.status(200).json(successResponse('Restaurant leaderboard fetched', leaderboard));
+  } catch (err: any) {
+    res.status(500).json(errorResponse('Failed to fetch restaurant leaderboard', err.message));
+  }
+}
 }
 
 export const feedbackAnalyticsController = new FeedbackAnalyticsController();
