@@ -18,4 +18,5 @@ export const ENV = {
     MANAGER_EMAIL: process.env.MANAGER_EMAIL!,
     HR_EMAIL: process.env.HR_EMAIL!,
   },
+  
 };

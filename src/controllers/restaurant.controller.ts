@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { restaurantService } from '../services/restaurant.service';
 import { errorResponse, successResponse } from '../models/response.model';
+import cloudinary from '../config/cloudinary';
 
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -41,36 +42,52 @@ export class RestaurantController {
     }
   }
 
-  
   async create(req: Request, res: Response): Promise<void> {
-  try {
-    const { x_name, x_location, x_manager_email, x_website, x_image, x_tables, x_color, x_status } = req.body;
+    try {
+      // multipart/form-data -> all text fields arrive as strings on req.body
+      const { x_name, x_location, x_manager_email, x_website, x_tables, x_color, x_status } = req.body;
 
-    if (!x_name || !x_location || !x_manager_email) {
-      res.status(400).json(errorResponse('Missing required fields: x_name, x_location, x_manager_email'));
-      return;
+      if (!x_name || !x_location || !x_manager_email) {
+        res.status(400).json(errorResponse('Missing required fields: x_name, x_location, x_manager_email'));
+        return;
+      }
+      if (!EMAIL_RE.test(x_manager_email)) {
+        res.status(400).json(errorResponse('Invalid manager email format'));
+        return;
+      }
+
+      let x_image: string | undefined;
+
+      if (req.file) {
+        const result = await new Promise<{ secure_url: string }>((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: 'restaurants' },
+            (error, result) => {
+              if (error || !result) reject(error ?? new Error('Image upload failed'));
+              else resolve(result as { secure_url: string });
+            }
+          );
+          stream.end(req.file!.buffer);
+        });
+        x_image = result.secure_url;
+      }
+
+      const id = await restaurantService.create({
+        x_name:          String(x_name).trim().slice(0, 100),
+        x_location:      String(x_location).trim().slice(0, 200),
+        x_manager_email: String(x_manager_email).trim().toLowerCase(),
+        x_website:       x_website ? String(x_website).trim() : undefined,
+        x_image,
+        x_tables:        x_tables !== undefined ? Number(x_tables) : undefined,
+        x_color:         x_color ? String(x_color) : undefined,
+        x_status:        x_status === 'paused' ? 'paused' : 'active',
+      });
+
+      res.status(201).json(successResponse('Restaurant created', { id }));
+    } catch (err: any) {
+      res.status(500).json(errorResponse('Failed to create restaurant', err.message));
     }
-    if (!EMAIL_RE.test(x_manager_email)) {
-      res.status(400).json(errorResponse('Invalid manager email format'));
-      return;
-    }
-
-    const id = await restaurantService.create({
-      x_name:          String(x_name).trim().slice(0, 100),
-      x_location:      String(x_location).trim().slice(0, 200),
-      x_manager_email: String(x_manager_email).trim().toLowerCase(),
-      x_website:       x_website ? String(x_website).trim() : undefined,
-      x_image:         x_image ? String(x_image).trim() : undefined,
-      x_tables:        x_tables !== undefined ? Number(x_tables) : undefined,
-      x_color:         x_color ? String(x_color) : undefined,
-      x_status:        x_status === 'paused' ? 'paused' : 'active',
-    });
-
-    res.status(201).json(successResponse('Restaurant created', { id }));
-  } catch (err: any) {
-    res.status(500).json(errorResponse('Failed to create restaurant', err.message));
   }
-}
 }
 
 export const restaurantController = new RestaurantController();

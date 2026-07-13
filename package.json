@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon --exec ts-node src/server.ts --watch src --ext ts",
-     "build": "tsc && cp -r src/mails dist/mails",
+    "build": "tsc && cp -r src/mails dist/mails",
     "start": "node dist/server.js"
   },
   "keywords": [],
@@ -24,6 +24,7 @@
     "express-rate-limit": "^8.5.2",
     "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.3",
+    "multer": "^2.2.0",
     "nodemailer": "^8.0.10",
     "qrcode": "^1.5.4",
     "uuid": "^14.0.0",
@@ -35,6 +36,7 @@
     "@types/ejs": "^3.1.5",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.2.0",
     "@types/node": "^25.9.2",
     "@types/nodemailer": "^8.0.0",
     "@types/qrcode": "^1.5.6",

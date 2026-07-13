@@ -2,13 +2,14 @@ import { Router } from 'express';
 import { restaurantController } from '../controllers/restaurant.controller';
 import { qrController } from '../controllers/Qr.controller';
 import { readLimiter } from '../middleware';
+import { upload } from '../middleware/upload.middleware';
 
 const router = Router();
 
 export const restaurantRouter = Router();
 
 restaurantRouter.get ('/',              readLimiter, restaurantController.getAll.bind(restaurantController));
-restaurantRouter.post('/',                           restaurantController.create.bind(restaurantController));
+restaurantRouter.post('/',                         upload.single('image'),  restaurantController.create.bind(restaurantController));
 restaurantRouter.get ('/qr/:token',     readLimiter, qrController.resolveToken.bind(qrController));
 restaurantRouter.get ('/without-qr',    readLimiter, restaurantController.getWithoutQr.bind(restaurantController));
 restaurantRouter.get ('/:id',           readLimiter, restaurantController.getById.bind(restaurantController));
