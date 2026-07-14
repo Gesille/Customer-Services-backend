@@ -151,7 +151,7 @@ export const downloadCV = CatchAsyncError(
 export const updateApplicantStage = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
-    const { stage } = req.body;
+    const { stage, changedBy } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id as any)) {
       return next(new ErrorHandler("Invalid applicant ID", 400));
@@ -162,13 +162,66 @@ export const updateApplicantStage = CatchAsyncError(
 
     const applicant = await ApplicantModel.findByIdAndUpdate(
       id,
-      { stage },
-     { returnDocument: "after" }
+      {
+        stage,
+        $push: { stageHistory: { stage, changedBy: changedBy || "HR" } },
+      },
+      { returnDocument: "after" }
     ).lean();
 
     if (!applicant) return next(new ErrorHandler("Applicant not found", 404));
 
     res.status(200).json({ success: true, stage: applicant.stage });
+  }
+);
+
+
+export const getApplicantById = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id as any)) {
+      return next(new ErrorHandler("Invalid applicant ID", 400));
+    }
+
+    const applicant: any = await ApplicantModel.findById(id)
+      .populate("jobId", "title")
+      .lean();
+
+    if (!applicant) return next(new ErrorHandler("Applicant not found", 404));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        id: applicant._id.toString(),
+        name: applicant.name,
+        email: applicant.email,
+        phone: applicant.phone ?? null,
+        linkedin: applicant.linkedin ?? null,
+        message: applicant.message ?? null,
+        stage: applicant.stage,
+        assignedTo: applicant.assignedTo ?? null,
+        job: applicant.jobId?.title ?? null,
+        submittedAt: applicant.createdAt,
+        notes: (applicant.notes || []).map((n: any) => ({
+          id: n._id.toString(),
+          text: n.text,
+          author: n.author,
+          createdAt: n.createdAt,
+        })),
+        stageHistory: (applicant.stageHistory || []).map((h: any) => ({
+          stage: h.stage,
+          changedBy: h.changedBy,
+          changedAt: h.changedAt,
+        })),
+        cvFiles: (applicant.attachments || []).map((att: any) => ({
+          id: att._id.toString(),
+          name: att.name,
+          mimetype: att.mimetype,
+          downloadUrl: `/api/v1/cv/download/${att._id.toString()}`,
+        })),
+      },
+    });
   }
 );
 

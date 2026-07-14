@@ -1,7 +1,10 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { applicantService } from '../services/applicant.service';
 import { jobService } from '../services/job.service';
 import { errorResponse, successResponse } from '../models/response.model';
+import ErrorHandler from '../middleware/ErrorHandler';
+import { ApplicantModel } from '../models/applicant.model';
+import { CatchAsyncError } from '../middleware/catchAsyncError';
 
 
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
@@ -13,7 +16,7 @@ const ALLOWED_RESUME_MIME = [
 ];
 
 export class ApplicantController {
-  // POST /jobs/:jobId/apply  (multipart/form-data, field name "resume")
+  
   async apply(req: Request, res: Response): Promise<void> {
     try {
       const { jobId } = req.params;
@@ -73,7 +76,7 @@ export class ApplicantController {
     }
   }
 
-  // GET /jobs/:jobId/applicants  (HR view)
+
   async getByJob(req: Request, res: Response): Promise<void> {
     try {
       const { jobId } = req.params;
@@ -84,7 +87,7 @@ export class ApplicantController {
     }
   }
 
-  // GET /applicants/:applicantId/attachments/:attachmentId  (HR resume download)
+
   async downloadAttachment(req: Request, res: Response): Promise<void> {
     try {
       const { applicantId, attachmentId } = req.params;
@@ -106,3 +109,57 @@ export class ApplicantController {
 }
 
 export const applicantController = new ApplicantController();
+
+
+
+export const trackApplication = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { email, phone } = req.body;
+
+    if (!email || !phone) {
+      return next(new ErrorHandler("Email and phone are required", 400));
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const normalizedPhone = String(phone).replace(/\D/g, "");
+
+    if (!normalizedPhone) {
+      return next(new ErrorHandler("Enter a valid phone number", 400));
+    }
+
+    // email is indexed, so filter on it in Mongo, then compare phone digits-only
+    // in JS to tolerate formatting differences (spaces, dashes, +country code etc).
+    const candidates = await ApplicantModel.find({ email: normalizedEmail })
+      .populate("jobId", "title")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const matches = candidates.filter(
+      (a: any) => String(a.phone || "").replace(/\D/g, "") === normalizedPhone
+    );
+
+    if (matches.length === 0) {
+      return next(
+        new ErrorHandler("No application found for that email and phone", 404)
+      );
+    }
+
+    const data = matches.map((applicant: any) => ({
+      id: applicant._id.toString(),
+      job: applicant.jobId?.title ?? null,
+      stage: applicant.stage,
+      submittedAt: applicant.createdAt,
+      stageHistory: (applicant.stageHistory || []).map((h: any) => ({
+        stage: h.stage,
+        changedAt: h.changedAt,
+      })),
+      cvFiles: (applicant.attachments || []).map((att: any) => ({
+        id: att._id.toString(),
+        name: att.name,
+        downloadUrl: `/api/v1/cv/download/${att._id.toString()}`,
+      })),
+    }));
+
+    res.status(200).json({ success: true, data });
+  }
+);

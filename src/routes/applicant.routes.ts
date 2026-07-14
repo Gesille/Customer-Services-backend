@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { applicantController } from '../controllers/applicant.controller';
+import { applicantController, trackApplication } from '../controllers/applicant.controller';
+import { isAuthenticated } from '../middleware/auth';
 
 
 const upload = multer({
@@ -19,5 +20,5 @@ appRoute.get('/jobs/:jobId/applicants', (req, res) => applicantController.getByJ
 appRoute.get('/applicants/:applicantId/attachments/:attachmentId', (req, res) =>
   applicantController.downloadAttachment(req, res),
 );
-
+appRoute.post("/track",isAuthenticated, trackApplication);
 export default appRoute;

@@ -34,6 +34,7 @@ export interface ApplicantDocument extends Document {
   assignedTo?: string;
   notes:       Types.DocumentArray<NoteSubdocument>;
   attachments: Types.DocumentArray<AttachmentSubdocument>;
+  stageHistory: Types.DocumentArray<StageHistoryEntry>;
   createdAt:   Date;
 }
 
@@ -53,6 +54,19 @@ const noteSchema = new Schema<NoteSubdocument>(
   },
   { timestamps: { createdAt: true, updatedAt: false } },
 );
+export interface StageHistoryEntry extends Types.Subdocument {
+  stage: string;
+  changedBy: string;
+  changedAt: Date;
+}
+
+const stageHistorySchema = new Schema<StageHistoryEntry>(
+  {
+    stage: { type: String, required: true },
+    changedBy: { type: String, default: 'HR' },
+  },
+  { timestamps: { createdAt: 'changedAt', updatedAt: false } },
+);
 
 const applicantSchema = new Schema<ApplicantDocument>(
   {
@@ -66,6 +80,7 @@ const applicantSchema = new Schema<ApplicantDocument>(
     assignedTo:  { type: String },
     notes:       { type: [noteSchema], default: [] },
     attachments: { type: [attachmentSchema], default: [] },
+    stageHistory: { type: [stageHistorySchema], default: [] },
   },
   { timestamps: true },
 );
