@@ -4,7 +4,7 @@ import { restaurantService }  from '../services/restaurant.service';
 import { errorResponse, successResponse } from '../models/response.model';
 import { qrService } from '../services/Qr.service';
 import { buildPrintHtml } from '../shared/script/qr-print.view';
-
+import ScanLog from "../models/ScanLog.model"
 
 
 export class QrController {
@@ -44,20 +44,24 @@ export class QrController {
   }
 }
 
-  async resolveToken(req: Request, res: Response): Promise<void> {
-    try {
-      const restaurant = await restaurantService.getByQrToken(String(req.params.token));
-      if (!restaurant) { res.status(404).json(errorResponse('Invalid QR code')); return; }
+async resolveToken(req: Request, res: Response): Promise<void> {
+  try {
+    const restaurant = await restaurantService.getByQrToken(String(req.params.token));
+    if (!restaurant) { res.status(404).json(errorResponse('Invalid QR code')); return; }
 
-      res.status(200).json(successResponse('Restaurant found', {
-        id:       restaurant.id,
-        name:     restaurant.x_name,
-        location: restaurant.x_location,
-      }));
-    } catch (err: any) {
-      res.status(500).json(errorResponse('Failed to resolve QR token', err.message));
-    }
+    ScanLog.create({ restaurantId: restaurant.id }).catch((e) =>
+      console.error("Scan log failed:", e)
+    );
+
+    res.status(200).json(successResponse('Restaurant found', {
+      id:       restaurant.id,
+      name:     restaurant.x_name,
+      location: restaurant.x_location,
+    }));
+  } catch (err: any) {
+    res.status(500).json(errorResponse('Failed to resolve QR token', err.message));
   }
+}
   async generateQr(req: Request, res: Response): Promise<void> {
   try {
     const id = req.params.id;
