@@ -11,6 +11,7 @@ function toJob(doc: any): Job {
     // Assumes restaurant.model.ts exposes `x_name` (per RestaurantController) — adjust if the field differs
     restaurant_name: isPopulated ? restaurant.x_name : undefined,
     position: doc.position,
+    title: doc.title,
     department: doc.department,
     employment_type: doc.employment_type,
     description: doc.description,
@@ -84,7 +85,7 @@ export class JobService {
 
   async update(id: string, data: Partial<CreateJobDto>): Promise<Job | null> {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    const doc = await JobModel.findByIdAndUpdate(id, data, { new: true })
+    const doc = await JobModel.findByIdAndUpdate(id, data, { new: true,runValidators: true,context: 'query',  })
       .populate('restaurant_id', 'x_name x_location')
       .lean();
     return doc ? toJob(doc) : null;

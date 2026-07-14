@@ -13,8 +13,9 @@ export interface SalaryRange {
 export interface Job {
   id: string;
   restaurant_id: string;
-  restaurant_name?: string; // populated when available
+  restaurant_name?: string; 
   position: string;
+  title: string;
   department?: string;
   employment_type: EmploymentType;
   description: string;
@@ -34,6 +35,7 @@ export interface Job {
 export interface CreateJobDto {
   restaurant_id: string;
   position: string;
+  title: string;
   department?: string;
   employment_type?: EmploymentType;
   description: string;
@@ -51,6 +53,7 @@ export interface CreateJobDto {
 interface JobDocument extends Document {
   restaurant_id: mongoose.Types.ObjectId;
   position: string;
+  title: string; 
   department?: string;
   employment_type: EmploymentType;
   description: string;
@@ -69,6 +72,7 @@ const jobSchema = new Schema<JobDocument>(
   {
     restaurant_id: { type: Schema.Types.ObjectId, ref: 'Restaurant', required: true },
     position: { type: String, required: true, trim: true },
+    title: { type: String, required: true, trim: true }, 
     department: { type: String, trim: true },
     employment_type: {
       type: String,

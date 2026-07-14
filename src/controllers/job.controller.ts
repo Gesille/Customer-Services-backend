@@ -9,6 +9,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const REQUIRED_FIELDS = [
   'restaurant_id',
+  'title',
   'position',
   'description',
   'contact_email',
@@ -120,6 +121,7 @@ export class JobController {
       const id = await jobService.create({
         restaurant_id:     String(body.restaurant_id),
         position:          String(body.position).trim().slice(0, 150),
+        title:             String(body.title).trim().slice(0, 150), 
         department:        body.department ? String(body.department).trim() : undefined,
         employment_type:   body.employment_type || 'Full-time',
         description:       String(body.description).trim(),
