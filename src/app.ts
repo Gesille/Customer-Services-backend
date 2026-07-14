@@ -9,6 +9,7 @@ import { ErrorMiddleware } from './middleware/error';
 import userRouter from './routes/user.route';
 import { cvRouter } from './routes/cv.route';
 import appRoute from './routes/applicant.routes';
+import contactRouter from './routes/Contact.routes';
 
 
 
@@ -45,6 +46,7 @@ app.use('/api/v1', routes);
 app.use("/api/v1",userRouter);
 app.use("/api/v1", cvRouter);
 app.use('/api/v1',appRoute)
+app.use('/api/v1',contactRouter)
 
 //unknoun route
 app.all("*", (req:Request , res:Response , next:NextFunction) =>{
