@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
-import Question from "../models/Question.model"
+import Question from "../models/Question.model";
 
-
+// ─── POST /api/questions ────────────────────────────────────────────────────
+// Public — a client asks a question through the website form
 export const submitQuestion = async (req: Request, res: Response) => {
   try {
     const question = String(req.body.question || "").trim();
@@ -31,7 +32,7 @@ export const getPublishedQuestions = async (_req: Request, res: Response) => {
   try {
     const questions = await Question.find({ isPublished: true, answer: { $exists: true, $ne: "" } })
       .sort({ createdAt: -1 })
-      .select("question answer createdAt");
+      .select("question answer createdAt updatedAt");
 
     return res.status(200).json({ success: true, data: questions });
   } catch (error) {
