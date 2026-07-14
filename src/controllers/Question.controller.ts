@@ -41,12 +41,10 @@ export const getPublishedQuestions = async (_req: Request, res: Response) => {
   }
 };
 
-// ─── GET /api/questions ─────────────────────────────────────────────────────
-// HR dashboard — all questions, filterable by origin / published state
-// ?origin=client|hr  ?published=true|false  ?page=1&limit=20
+// questionController.ts — getAllQuestions
 export const getAllQuestions = async (req: Request, res: Response) => {
   try {
-    const { origin, published } = req.query;
+    const { origin, published, answered } = req.query;
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
 
@@ -54,6 +52,8 @@ export const getAllQuestions = async (req: Request, res: Response) => {
     if (origin === "client" || origin === "hr") filter.origin = origin;
     if (published === "true") filter.isPublished = true;
     if (published === "false") filter.isPublished = false;
+    if (answered === "true") filter.answer = { $exists: true, $ne: "" };
+    if (answered === "false") filter.$or = [{ answer: { $exists: false } }, { answer: "" }];
 
     const [questions, total] = await Promise.all([
       Question.find(filter)
