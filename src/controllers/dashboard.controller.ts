@@ -49,7 +49,10 @@ async function last7DaysCounts(model: any, dateField = "createdAt"): Promise<num
     { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: `$${dateField}` } }, count: { $sum: 1 } } },
   ]);
 
-  const byDay = new Map(rows.map((r: any) => [r._id, r.count]));
+  const byDay = new Map<string, number>(
+    rows.map((r: any) => [r._id as string, r.count as number])
+  );
+
   const out: number[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now);
