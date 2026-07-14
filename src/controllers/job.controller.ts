@@ -131,7 +131,7 @@ export class JobController {
         contact_email:     String(body.contact_email).trim().toLowerCase(),
         contact_phone:     String(body.contact_phone).trim(),
         location:          body.location ? String(body.location).trim() : undefined,
-        salary_range:      body.salary_range,
+  
         status:            body.status || 'open',
         closing_date:      body.closing_date ? new Date(body.closing_date) : undefined,
       });

@@ -3,11 +3,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 export type EmploymentType = 'Full-time' | 'Part-time' | 'Contract' | 'Seasonal' | 'Internship';
 export type JobStatus = 'open' | 'closed' | 'draft';
 
-export interface SalaryRange {
-  min?: number;
-  max?: number;
-  currency?: string;
-}
+
 
 // Shape returned to the client (matches the toJob() mapper in job.service.ts)
 export interface Job {
@@ -25,7 +21,7 @@ export interface Job {
   contact_email: string;
   contact_phone: string;
   location?: string;
-  salary_range?: SalaryRange;
+
   status: JobStatus;
   closing_date?: Date;
   createdAt: Date;
@@ -45,7 +41,7 @@ export interface CreateJobDto {
   contact_email: string;
   contact_phone: string;
   location?: string;
-  salary_range?: SalaryRange;
+
   status?: JobStatus;
   closing_date?: Date;
 }
@@ -63,7 +59,7 @@ interface JobDocument extends Document {
   contact_email: string;
   contact_phone: string;
   location?: string;
-  salary_range?: SalaryRange;
+
   status: JobStatus;
   closing_date?: Date;
 }
@@ -90,11 +86,7 @@ const jobSchema = new Schema<JobDocument>(
     contact_email: { type: String, required: true, lowercase: true, trim: true },
     contact_phone: { type: String, required: true, trim: true },
     location: { type: String, trim: true },
-    salary_range: {
-      min: { type: Number },
-      max: { type: Number },
-      currency: { type: String, default: 'USD' },
-    },
+   
     status: { type: String, enum: ['open', 'closed', 'draft'], default: 'open' },
     closing_date: { type: Date },
   },

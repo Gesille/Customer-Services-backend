@@ -21,7 +21,7 @@ function toJob(doc: any): Job {
     contact_email: doc.contact_email,
     contact_phone: doc.contact_phone,
     location: doc.location,
-    salary_range: doc.salary_range,
+    
     status: doc.status,
     closing_date: doc.closing_date,
     createdAt: doc.createdAt,
