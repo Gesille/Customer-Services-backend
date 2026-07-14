@@ -61,8 +61,7 @@ const applicantSchema = new Schema<ApplicantDocument>(
     phone:       { type: String },
     message:     { type: String },
     linkedin:    { type: String },
-    jobId:       { type: String },
-
+  jobId: { type: mongoose.Schema.Types.ObjectId, ref: "Job" },
     stage:       { type: String, enum: STAGES, default: 'New', index: true },
     assignedTo:  { type: String },
     notes:       { type: [noteSchema], default: [] },

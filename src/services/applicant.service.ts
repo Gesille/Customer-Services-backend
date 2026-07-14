@@ -24,6 +24,7 @@ export interface ApplicantSummary {
   phone?: string;
   message?: string;
   linkedin?: string;
+   job?: string | null;  
   jobId?: string;
   stage: string;
   assignedTo?: string;
@@ -41,7 +42,8 @@ function toApplicant(doc: any): ApplicantSummary {
     phone: doc.phone,
     message: doc.message,
     linkedin: doc.linkedin,
-    jobId: doc.jobId,
+    job: doc.jobId?.title ?? null,    
+    jobId: doc.jobId?._id?.toString() ?? doc.jobId, 
     stage: doc.stage,
     assignedTo: doc.assignedTo,
     attachments: (doc.attachments || []).map((a: any) => ({
@@ -69,7 +71,10 @@ export class ApplicantService {
   }
 
   async getByJob(jobId: string): Promise<ApplicantSummary[]> {
-    const docs = await ApplicantModel.find({ jobId }).sort({ createdAt: -1 }).lean();
+    const docs = await ApplicantModel.find({ jobId })
+      .populate("jobId", "title")  
+      .sort({ createdAt: -1 })
+      .lean();
     return docs.map(toApplicant);
   }
 
