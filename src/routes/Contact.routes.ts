@@ -9,6 +9,6 @@ contactRouter.post("/submit-contact", submitContact);
 
 contactRouter.get("/get-all-contacts",isAuthenticated,authorizeRoles("admin"), getContacts );
 contactRouter.get("/get-contact/:id", isAuthenticated,authorizeRoles("admin"),getContactById );
-contactRouter.patch("/get-contact/:id",isAuthenticated,authorizeRoles("admin"), updateContactStatus);
+contactRouter.patch("/update-status/:id",isAuthenticated,authorizeRoles("admin"), updateContactStatus);
 
 export default contactRouter;
