@@ -10,6 +10,7 @@ import userRouter from './routes/user.route';
 import { cvRouter } from './routes/cv.route';
 import appRoute from './routes/applicant.routes';
 import contactRouter from './routes/Contact.routes';
+import questionsRouter from './routes/Question.routes';
 
 
 
@@ -47,6 +48,7 @@ app.use("/api/v1",userRouter);
 app.use("/api/v1", cvRouter);
 app.use('/api/v1',appRoute)
 app.use('/api/v1',contactRouter)
+app.use('/api/v1',questionsRouter)
 
 //unknoun route
 app.all("*", (req:Request , res:Response , next:NextFunction) =>{
