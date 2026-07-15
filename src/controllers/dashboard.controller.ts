@@ -1,7 +1,7 @@
 // controllers/dashboard.controller.ts
 import { Request, Response } from "express";
 
-import { ApplicantModel } from "../models/applicant.model";
+import { ApplicantModel, STAGES } from "../models/applicant.model";
 import ContactSubmission from "../models/ContactSubmission";
 import Question from "../models/Question.model";
 import ScanLog from "../models/ScanLog.model";
@@ -219,5 +219,127 @@ export const getRecentActivity = async (req: Request, res: Response) => {
     res.status(200).json(successResponse("Recent activity fetched", events));
   } catch (err: any) {
     res.status(500).json(errorResponse("Failed to fetch recent activity", err.message));
+  }
+};
+
+export const getRestaurantsNeedingQr = async (_req: Request, res: Response) => {
+  try {
+    const restaurants = await RestaurantModel.find(
+      {
+        $and: [
+          { $or: [{ x_qr_token: { $exists: false } }, { x_qr_token: null }] },
+          { $or: [{ x_qr_generated_at: { $exists: false } }, { x_qr_generated_at: null } ] },
+          { $or: [{ qr_token: { $exists: false } }, { qr_token: null }] },
+          { $or: [{ qr_generated_at: { $exists: false } }, { qr_generated_at: null } ] },
+        ],
+      },
+      "x_name x_location createdAt"
+    )
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const data = restaurants.map((r: any) => ({
+      id: r._id.toString(),
+      name: r.x_name,
+      location: r.x_location,
+      createdAt: r.createdAt,
+    }));
+
+    res.status(200).json(successResponse("Restaurants needing QR setup fetched", { count: data.length, restaurants: data }));
+  } catch (err: any) {
+    res.status(500).json(errorResponse("Failed to fetch restaurants needing setup", err.message));
+  }
+};
+
+export const getConversionRate = async (req: Request, res: Response) => {
+  try {
+    const days = Number(req.query.days) || 30;
+    const start = new Date();
+    start.setUTCDate(start.getUTCDate() - days);
+
+    const [scansByRestaurant, feedbackByRestaurant] = await Promise.all([
+      ScanLog.aggregate([
+        { $match: { createdAt: { $gte: start } } },
+        { $group: { _id: "$restaurantId", scans: { $sum: 1 } } },
+      ]),
+      FeedbackModel.aggregate([
+        { $match: { createdAt: { $gte: start } } },
+        { $group: { _id: "$restaurant_id", feedback: { $sum: 1 } } },
+      ]),
+    ]);
+
+    const scansById = new Map(scansByRestaurant.map((r: any) => [String(r._id), r.scans]));
+    const feedbackById = new Map(feedbackByRestaurant.map((r: any) => [String(r._id), r.feedback]));
+
+    const restaurantIds = [...new Set([...scansById.keys(), ...feedbackById.keys()])];
+    const restaurants = restaurantIds.length
+      ? await RestaurantModel.find({ _id: { $in: restaurantIds } }, "x_name").lean()
+      : [];
+    const nameById = new Map(restaurants.map((r: any) => [String(r._id), r.x_name]));
+
+    const perRestaurant = restaurantIds
+      .map((id) => {
+        const scans = scansById.get(id) ?? 0;
+        const feedback = feedbackById.get(id) ?? 0;
+        return {
+          restaurantId: id,
+          restaurantName: nameById.get(id) ?? "Unknown restaurant",
+          scans,
+          feedback,
+          conversionRate: scans > 0 ? Number(((feedback / scans) * 100).toFixed(1)) : 0,
+        };
+      })
+      .sort((a, b) => b.conversionRate - a.conversionRate);
+
+    const totalScans = perRestaurant.reduce((sum, r) => sum + r.scans, 0);
+    const totalFeedback = perRestaurant.reduce((sum, r) => sum + r.feedback, 0);
+
+    res.status(200).json(
+      successResponse("Conversion rate fetched", {
+        days,
+        overall: {
+          scans: totalScans,
+          feedback: totalFeedback,
+          conversionRate: totalScans > 0 ? Number(((totalFeedback / totalScans) * 100).toFixed(1)) : 0,
+        },
+        perRestaurant,
+      })
+    );
+  } catch (err: any) {
+    res.status(500).json(errorResponse("Failed to fetch conversion rate", err.message));
+  }
+};
+
+export const getApplicantFunnel = async (req: Request, res: Response) => {
+  try {
+    const days = req.query.days ? Number(req.query.days) : undefined;
+    const match: Record<string, unknown> = {};
+    if (days && days > 0) {
+      const start = new Date();
+      start.setUTCDate(start.getUTCDate() - days);
+      match.createdAt = { $gte: start };
+    }
+
+    const rows = await ApplicantModel.aggregate([
+      ...(Object.keys(match).length ? [{ $match: match }] : []),
+      { $group: { _id: "$stage", count: { $sum: 1 } } },
+    ]);
+
+    const countByStage = new Map(rows.map((r: any) => [r._id, r.count]));
+    const total = rows.reduce((sum: number, r: any) => sum + r.count, 0);
+
+ 
+    const funnel = STAGES.map((stage: string) => {
+      const count = countByStage.get(stage) ?? 0;
+      return {
+        stage,
+        count,
+        percentOfTotal: total > 0 ? Number(((count / total) * 100).toFixed(1)) : 0,
+      };
+    });
+
+    res.status(200).json(successResponse("Applicant funnel fetched", { total, funnel }));
+  } catch (err: any) {
+    res.status(500).json(errorResponse("Failed to fetch applicant funnel", err.message));
   }
 };
