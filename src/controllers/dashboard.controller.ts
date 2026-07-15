@@ -101,8 +101,15 @@ export const getDashboardStats = async (_req: Request, res: Response) => {
       Question.countDocuments({ $or: [{ answer: { $exists: false } }, { answer: "" }] }),
       ScanLog.countDocuments({ createdAt: { $gte: today.start, $lt: today.end } }),
       ScanLog.countDocuments({ createdAt: { $gte: yesterday.start, $lt: yesterday.end } }),
-      // NOTE: adjust field name below to whatever markQrGenerated actually sets on Restaurant
-      RestaurantModel.countDocuments({ qr_generated_at: { $exists: true, $ne: null } }),
+   
+RestaurantModel.countDocuments({
+  $or: [
+    { x_qr_token: { $exists: true, $ne: null } },
+    { x_qr_generated_at: { $exists: true, $ne: null } },
+    { qr_token: { $exists: true, $ne: null } },
+    { qr_generated_at: { $exists: true, $ne: null } },
+  ],
+}),
       last7DaysCounts(FeedbackModel),
       last7DaysCounts(ApplicantModel),
     ]);
