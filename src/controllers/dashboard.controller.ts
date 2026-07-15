@@ -264,8 +264,8 @@ export const getConversionRate = async (req: Request, res: Response) => {
         { $group: { _id: "$restaurantId", scans: { $sum: 1 } } },
       ]),
       FeedbackModel.aggregate([
-        { $match: { createdAt: { $gte: start } } },
-        { $group: { _id: "$restaurant_id", feedback: { $sum: 1 } } },
+        { $match: { x_date: { $gte: start } } },
+        { $group: { _id: "$x_restaurant_id", feedback: { $sum: 1 } } },
       ]),
     ]);
 
