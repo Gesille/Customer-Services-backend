@@ -257,7 +257,8 @@ export const getConversionRate = async (req: Request, res: Response) => {
     const start = new Date();
     start.setUTCDate(start.getUTCDate() - days);
 
-    const [scansByRestaurant, feedbackByRestaurant] = await Promise.all([
+    const [allRestaurants, scansByRestaurant, feedbackByRestaurant] = await Promise.all([
+      RestaurantModel.find({}, "x_name").lean(),
       ScanLog.aggregate([
         { $match: { createdAt: { $gte: start } } },
         { $group: { _id: "$restaurantId", scans: { $sum: 1 } } },
@@ -271,19 +272,14 @@ export const getConversionRate = async (req: Request, res: Response) => {
     const scansById = new Map(scansByRestaurant.map((r: any) => [String(r._id), r.scans]));
     const feedbackById = new Map(feedbackByRestaurant.map((r: any) => [String(r._id), r.feedback]));
 
-    const restaurantIds = [...new Set([...scansById.keys(), ...feedbackById.keys()])];
-    const restaurants = restaurantIds.length
-      ? await RestaurantModel.find({ _id: { $in: restaurantIds } }, "x_name").lean()
-      : [];
-    const nameById = new Map(restaurants.map((r: any) => [String(r._id), r.x_name]));
-
-    const perRestaurant = restaurantIds
-      .map((id) => {
+    const perRestaurant = allRestaurants
+      .map((r: any) => {
+        const id = String(r._id);
         const scans = scansById.get(id) ?? 0;
         const feedback = feedbackById.get(id) ?? 0;
         return {
           restaurantId: id,
-          restaurantName: nameById.get(id) ?? "Unknown restaurant",
+          restaurantName: r.x_name ?? "Unknown restaurant",
           scans,
           feedback,
           conversionRate: scans > 0 ? Number(((feedback / scans) * 100).toFixed(1)) : 0,
