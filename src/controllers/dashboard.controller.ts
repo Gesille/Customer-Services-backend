@@ -9,6 +9,7 @@ import { errorResponse, successResponse } from "../models/response.model";
 import { FeedbackModel } from "../models/feedback.model";
 import { JobModel } from "../models/job.model";
 import { RestaurantModel } from "../models/restaurant.model";
+import mongoose from "mongoose";
 
 // ─── helpers ─────────────────────────────────────────────────────────────
 
