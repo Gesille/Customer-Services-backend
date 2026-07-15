@@ -156,17 +156,23 @@ export const getScanTrend = async (_req: Request, res: Response) => {
   }
 };
 
-// ─── GET /api/dashboard/recent-activity ─────────────────────────────────
-// Powers: RecentActivity — merges scans, feedback, and CV submissions into one feed
 export const getRecentActivity = async (req: Request, res: Response) => {
   try {
     const limit = Math.min(50, Number(req.query.limit) || 15);
 
     const [scans, feedback, applicants] = await Promise.all([
       ScanLog.find().sort({ createdAt: -1 }).limit(limit).populate("restaurantId", "x_name").lean(),
-      FeedbackModel.find().sort({ createdAt: -1 }).limit(limit).populate("restaurant_id", "x_name").lean(),
+      FeedbackModel.find().sort({ createdAt: -1 }).limit(limit).lean(), 
       ApplicantModel.find().sort({ createdAt: -1 }).limit(limit).lean(),
     ]);
+
+    // manually fetch restaurant names for feedback rows
+    const restaurantIds = [...new Set(feedback.map((f: any) => String(f.restaurant_id)))];
+    const restaurants = await RestaurantModel.find(
+      { _id: { $in: restaurantIds } },
+      "x_name"
+    ).lean();
+    const nameById = new Map(restaurants.map((r: any) => [String(r._id), r.x_name]));
 
     const events = [
       ...scans.map((s: any) => ({
@@ -179,7 +185,7 @@ export const getRecentActivity = async (req: Request, res: Response) => {
       ...feedback.map((f: any) => ({
         id: f._id.toString(),
         type: "feedback" as const,
-        restaurantName: f.restaurant_id?.x_name ?? "Unknown restaurant",
+        restaurantName: nameById.get(String(f.restaurant_id)) ?? "Unknown restaurant",
         detail: `received ${f.overall_rating}★ feedback from ${f.customer_name}`,
         time: f.createdAt,
       })),
