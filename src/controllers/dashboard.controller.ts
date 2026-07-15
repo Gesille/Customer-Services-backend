@@ -162,16 +162,24 @@ export const getRecentActivity = async (req: Request, res: Response) => {
 
     const [scans, feedback, applicants] = await Promise.all([
       ScanLog.find().sort({ createdAt: -1 }).limit(limit).populate("restaurantId", "x_name").lean(),
-      FeedbackModel.find().sort({ createdAt: -1 }).limit(limit).lean(), 
+      FeedbackModel.find().sort({ createdAt: -1 }).limit(limit).lean(),
       ApplicantModel.find().sort({ createdAt: -1 }).limit(limit).lean(),
     ]);
 
-    // manually fetch restaurant names for feedback rows
-    const restaurantIds = [...new Set(feedback.map((f: any) => String(f.restaurant_id)))];
-    const restaurants = await RestaurantModel.find(
-      { _id: { $in: restaurantIds } },
-      "x_name"
-    ).lean();
+    // filter out missing/invalid restaurant_id values before querying
+    const restaurantIds = [
+      ...new Set(
+        feedback
+          .map((f: any) => f.restaurant_id)
+          .filter((id: any) => id && mongoose.Types.ObjectId.isValid(id))
+          .map((id: any) => String(id))
+      ),
+    ];
+
+    const restaurants = restaurantIds.length
+      ? await RestaurantModel.find({ _id: { $in: restaurantIds } }, "x_name").lean()
+      : [];
+
     const nameById = new Map(restaurants.map((r: any) => [String(r._id), r.x_name]));
 
     const events = [
@@ -185,7 +193,7 @@ export const getRecentActivity = async (req: Request, res: Response) => {
       ...feedback.map((f: any) => ({
         id: f._id.toString(),
         type: "feedback" as const,
-        restaurantName: nameById.get(String(f.restaurant_id)) ?? "Unknown restaurant",
+        restaurantName: f.restaurant_id ? nameById.get(String(f.restaurant_id)) ?? "Unknown restaurant" : "Unknown restaurant",
         detail: `received ${f.overall_rating}★ feedback from ${f.customer_name}`,
         time: f.createdAt,
       })),
