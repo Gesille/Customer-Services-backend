@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getDashboardStats, getScanTrend, getRecentActivity, getApplicantFunnel, getConversionRate, getRestaurantsNeedingQr } from "../controllers/dashboard.controller";
+import { getDashboardStats, getScanTrend, getRecentActivity, getApplicantFunnel, getConversionRate, getRestaurantsNeedingQr, debugFeedbackRaw } from "../controllers/dashboard.controller";
 import { authorizeRoles, isAuthenticated } from "../middleware/auth";
 
 const dashboardRouter = Router();
@@ -10,5 +10,5 @@ dashboardRouter.get("/recent-activity",  isAuthenticated,authorizeRoles("admin")
 dashboardRouter.get("/applicant-funnel", isAuthenticated,authorizeRoles("admin"),getApplicantFunnel);
 dashboardRouter.get("/conversion-rate", isAuthenticated,authorizeRoles("admin"),getConversionRate);
 dashboardRouter.get("/setup-needed",isAuthenticated,authorizeRoles("admin"), getRestaurantsNeedingQr);
-
+dashboardRouter.get("/debug/feedback-raw", debugFeedbackRaw);
 export default dashboardRouter;

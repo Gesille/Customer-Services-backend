@@ -306,6 +306,45 @@ export const getConversionRate = async (req: Request, res: Response) => {
   }
 };
 
+// دالة تشخيصية مؤقتة — امسحيها بعد ما تخلصي تتأكدي من المشكلة
+export const debugFeedbackRaw = async (req: Request, res: Response) => {
+  try {
+    const restaurantId = req.query.restaurantId as string | undefined;
+
+    const filter: any = {};
+    if (restaurantId) {
+      filter.x_restaurant_id = restaurantId;
+    }
+
+    const rawFeedback = await FeedbackModel.find(
+      filter,
+      "x_restaurant_id x_customer_name x_date"
+    )
+      .sort({ x_date: -1 })
+      .limit(20)
+      .lean();
+
+    // نجمعهم حسب restaurant id عشان نشوف كل مطعم عنده كام feedback فعليًا وتواريخها
+    const grouped: Record<string, { count: number; dates: string[] }> = {};
+    for (const f of rawFeedback as any[]) {
+      const id = String(f.x_restaurant_id);
+      if (!grouped[id]) grouped[id] = { count: 0, dates: [] };
+      grouped[id].count++;
+      grouped[id].dates.push(f.x_date);
+    }
+
+    res.status(200).json(
+      successResponse("Raw feedback debug", {
+        totalFound: rawFeedback.length,
+        groupedByRestaurantId: grouped,
+        raw: rawFeedback,
+      })
+    );
+  } catch (err: any) {
+    res.status(500).json(errorResponse("Failed to fetch debug feedback", err.message));
+  }
+};
+
 export const getApplicantFunnel = async (req: Request, res: Response) => {
   try {
     const days = req.query.days ? Number(req.query.days) : undefined;
