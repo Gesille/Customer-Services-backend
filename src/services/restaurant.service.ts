@@ -1,11 +1,12 @@
 import mongoose from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 import {
- 
   CreateRestaurantDto,
   Restaurant,
   RestaurantModel,
 } from '../models/restaurant.model';
+import ScanLog from '../models/ScanLog.model';
+import { FeedbackModel } from '../models/feedback.model';
 
 function toRestaurant(doc: any): Restaurant {
   return {
@@ -23,10 +24,65 @@ function toRestaurant(doc: any): Restaurant {
   };
 }
 
+function monthRange(offsetMonths = 0) {
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - offsetMonths, 1));
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - offsetMonths + 1, 1));
+  return { start, end };
+}
+
 export class RestaurantService {
+  // Returns restaurants enriched with totalScans, avgRating, and scansTrend
+  // (% change in scans this month vs last month) — powers the RestaurantCard
+  // stats on the frontend dashboard.
   async getAll(): Promise<Restaurant[]> {
     const docs = await RestaurantModel.find().sort({ createdAt: -1 }).lean();
-    return docs.map(toRestaurant);
+    const restaurants = docs.map(toRestaurant);
+    if (restaurants.length === 0) return restaurants;
+
+    const ids = restaurants.map((r) => new mongoose.Types.ObjectId(r.id));
+    const thisMonth = monthRange(0);
+    const lastMonth = monthRange(1);
+
+    const [totalScansAgg, thisMonthScansAgg, lastMonthScansAgg, avgRatingAgg] = await Promise.all([
+      ScanLog.aggregate([
+        { $match: { restaurantId: { $in: ids } } },
+        { $group: { _id: '$restaurantId', count: { $sum: 1 } } },
+      ]),
+      ScanLog.aggregate([
+        { $match: { restaurantId: { $in: ids }, createdAt: { $gte: thisMonth.start, $lt: thisMonth.end } } },
+        { $group: { _id: '$restaurantId', count: { $sum: 1 } } },
+      ]),
+      ScanLog.aggregate([
+        { $match: { restaurantId: { $in: ids }, createdAt: { $gte: lastMonth.start, $lt: lastMonth.end } } },
+        { $group: { _id: '$restaurantId', count: { $sum: 1 } } },
+      ]),
+      FeedbackModel.aggregate([
+        { $match: { x_restaurant_id: { $in: ids } } },
+        { $group: { _id: '$x_restaurant_id', avg: { $avg: '$x_overall_rating' } } },
+      ]),
+    ]);
+
+    const totalScansById = new Map(totalScansAgg.map((r: any) => [String(r._id), r.count]));
+    const thisMonthById   = new Map(thisMonthScansAgg.map((r: any) => [String(r._id), r.count]));
+    const lastMonthById   = new Map(lastMonthScansAgg.map((r: any) => [String(r._id), r.count]));
+    const avgRatingById   = new Map(avgRatingAgg.map((r: any) => [String(r._id), r.avg]));
+
+    return restaurants.map((r) => {
+      const thisM = thisMonthById.get(r.id) ?? 0;
+      const lastM = lastMonthById.get(r.id) ?? 0;
+      const scansTrend =
+        lastM === 0
+          ? (thisM > 0 ? 100 : 0)
+          : Number((((thisM - lastM) / lastM) * 100).toFixed(0));
+
+      return {
+        ...r,
+        totalScans: totalScansById.get(r.id) ?? 0,
+        avgRating: Number((avgRatingById.get(r.id) ?? 0).toFixed(1)),
+        scansTrend,
+      };
+    });
   }
 
   async getById(id: string): Promise<Restaurant | null> {
@@ -65,7 +121,7 @@ export class RestaurantService {
   async markQrGenerated(id: string): Promise<Restaurant> {
     const restaurant = await this.getById(id);
     if (!restaurant) throw new Error('Restaurant not found');
-    if (restaurant.x_qr_generated) return restaurant; // already generated, no-op
+    if (restaurant.x_qr_generated) return restaurant;
 
     const updated = await this.update(id, { x_qr_generated: true });
     return updated as Restaurant;

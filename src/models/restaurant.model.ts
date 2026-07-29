@@ -11,6 +11,9 @@ export interface Restaurant {
   x_status?:       'active' | 'paused';
   x_qr_token:      string;
   x_qr_generated:  boolean;
+   totalScans?:     number;
+  avgRating?:      number;
+  scansTrend?:     number;
 }
 
 export interface CreateRestaurantDto {
