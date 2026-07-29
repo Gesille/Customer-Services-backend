@@ -34,6 +34,7 @@ function toFeedback(doc: any): Feedback {
     x_customer_name:                     doc.x_customer_name,
     x_customer_email:                    doc.x_customer_email,
     x_waiter_name:                       doc.x_waiter_name,
+     x_receipt_no:                        doc.x_receipt_no, 
     x_friendliness_rating:               doc.x_friendliness_rating,
     x_attentiveness_rating:              doc.x_attentiveness_rating,
     x_menu_knowledge_rating:             doc.x_menu_knowledge_rating,
@@ -77,6 +78,7 @@ export class FeedbackService {
       x_customer_name:                    dto.customer_name,
       x_customer_email:                   dto.customer_email,
       x_waiter_name:                      dto.waiter_name,
+       x_receipt_no:                       dto.receipt_no,  
       // Waiter / Waitress
       x_friendliness_rating:              dto.friendliness_rating,
       x_attentiveness_rating:             dto.attentiveness_rating,

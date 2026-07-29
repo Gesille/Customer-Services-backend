@@ -48,4 +48,7 @@ feedbackAnalyticsRouter.get(
   '/report/:restaurantId/pdf', readLimiter,
   feedbackAnalyticsController.getReportPdf.bind(feedbackAnalyticsController),
 );
+feedbackAnalyticsRouter.get('/details/:restaurantId?',       feedbackAnalyticsController.getFeedbackDetails);
+feedbackAnalyticsRouter.get('/details/pdf/:restaurantId',   feedbackAnalyticsController.getFeedbackDetailsPdf);
+feedbackAnalyticsRouter.get('/details/excel/:restaurantId', feedbackAnalyticsController.getFeedbackExcel);
 export default feedbackAnalyticsRouter;

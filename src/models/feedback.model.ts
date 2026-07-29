@@ -16,6 +16,7 @@ export interface Feedback {
   x_customer_name:               string;
   x_customer_email:              string;
   x_waiter_name:                 string;
+  x_receipt_no: string;
   // Waiter / Waitress
   x_friendliness_rating:         Rating;
   x_attentiveness_rating:        Rating;
@@ -39,6 +40,7 @@ export interface Feedback {
   // Common
   x_recommendation:              Recommendation;
   x_comment?:                    string;
+  
   x_date:                        string;
 }
 
@@ -47,6 +49,7 @@ export interface CreateFeedbackDto {
   customer_name:               string;
   customer_email:               string;
   waiter_name:                 string;
+  receipt_no: string;
   // Waiter / Waitress
   friendliness_rating:         Rating;
   attentiveness_rating:        Rating;
@@ -79,6 +82,7 @@ export interface FeedbackDocument extends Document {
   x_customer_name:               string;
   x_customer_email:              string;
   x_waiter_name:                 string;
+  x_receipt_no: string;
   x_friendliness_rating:         Rating;
   x_attentiveness_rating:        Rating;
   x_menu_knowledge_rating:       Rating;
@@ -109,6 +113,7 @@ const feedbackSchema = new Schema<FeedbackDocument>(
     x_customer_name:  { type: String, required: true, trim: true, maxlength: 100 },
     x_customer_email: { type: String, required: true, trim: true, maxlength: 150 },
     x_waiter_name:    { type: String, required: true, trim: true, maxlength: 100 },
+    x_receipt_no: { type: String, required: true, trim: true, maxlength: 50 },
     // Waiter / Waitress
     x_friendliness_rating:   { ...rating },
     x_attentiveness_rating:  { ...rating },

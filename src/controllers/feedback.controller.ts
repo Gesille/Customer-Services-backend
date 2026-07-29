@@ -40,6 +40,7 @@ const REQUIRED_FIELDS = [
   'customer_name',
   'customer_email',
   'waiter_name',
+  'receipt_no',  
   ...RATING_FIELDS,
   'recommendation',
 ] as const;
@@ -118,6 +119,7 @@ export class FeedbackController {
         customer_name:                    String(body.customer_name).trim().slice(0, 100),
         customer_email:                   String(body.customer_email).trim().slice(0, 150),
         waiter_name:                      String(body.waiter_name).trim().slice(0, 100),
+        receipt_no:                       String(body.receipt_no).trim().slice(0, 50),
         // Waiter / Waitress
         friendliness_rating:              Number(body.friendliness_rating)              as Rating,
         attentiveness_rating:             Number(body.attentiveness_rating)             as Rating,

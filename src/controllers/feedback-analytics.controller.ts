@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import { feedbackAnalyticsService } from '../services/feedback-analytics.service';
 import { errorResponse, successResponse } from '../models/response.model';
 import { reportPdfService } from '../services/report-pdf.service';
+import { feedbackExportService } from '../services/feedback-export.service';
 
 const isValidId = (id: unknown) =>
   typeof id === 'string' && mongoose.Types.ObjectId.isValid(id);
@@ -150,6 +151,47 @@ async getDailyReport(req: Request, res: Response): Promise<void> {
     } catch (err: any) {
       const status = err.message === 'Restaurant not found' ? 404 : 500;
       res.status(status).json(errorResponse('Failed to generate report PDF', err.message));
+    }
+  }
+  async getFeedbackDetails(req: Request, res: Response): Promise<void> {
+    try {
+      const { restaurantId } = req.params;
+      if (restaurantId && !isValidId(restaurantId)) {
+        res.status(400).json(errorResponse('Invalid restaurant ID')); return;
+      }
+      const page = Math.max(1, Number(req.query.page) || 1);
+      const pageSize = Math.min(200, Math.max(1, Number(req.query.pageSize) || 20));
+
+      const details = await feedbackAnalyticsService.getFeedbackDetails(restaurantId as string, page, pageSize);
+      res.status(200).json(successResponse('Feedback details fetched', details));
+    } catch (err: any) {
+      res.status(500).json(errorResponse('Failed to fetch feedback details', err.message));
+    }
+  }
+
+  async getFeedbackDetailsPdf(req: Request, res: Response): Promise<void> {
+    try {
+      const { restaurantId } = req.params;
+      if (!restaurantId || !isValidId(restaurantId)) {
+        res.status(400).json(errorResponse('Invalid restaurant ID')); return;
+      }
+      await reportPdfService.streamFeedbackDetailsPdf(res, restaurantId as string);
+    } catch (err: any) {
+      const status = err.message === 'Restaurant not found' ? 404 : 500;
+      res.status(status).json(errorResponse('Failed to generate feedback PDF', err.message));
+    }
+  }
+
+  async getFeedbackExcel(req: Request, res: Response): Promise<void> {
+    try {
+      const { restaurantId } = req.params;
+      if (!restaurantId || !isValidId(restaurantId)) {
+        res.status(400).json(errorResponse('Invalid restaurant ID')); return;
+      }
+      await feedbackExportService.streamFeedbackExcel(res, restaurantId as string);
+    } catch (err: any) {
+      const status = err.message === 'Restaurant not found' ? 404 : 500;
+      res.status(status).json(errorResponse('Failed to generate Excel export', err.message));
     }
   }
 }

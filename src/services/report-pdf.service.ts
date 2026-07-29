@@ -2,7 +2,7 @@ import PDFDocument from 'pdfkit';
 import { Response } from 'express';
 import path from 'path';
 import fs from 'fs';
-import { feedbackAnalyticsService } from './feedback-analytics.service';
+import { feedbackAnalyticsService, FeedbackDetail } from './feedback-analytics.service';
 import { restaurantService } from './restaurant.service';
 
 // ── Palette (navy/gold — matches the NextIntl brand system) ────────────────
@@ -84,6 +84,71 @@ class ReportPdfService {
     this.drawCalendar(doc, daily, year, month);
 
     doc.end();
+  }
+  async streamFeedbackDetailsPdf(res: Response, restaurantId: string): Promise<void> {
+    const restaurant = await restaurantService.getById(restaurantId);
+    if (!restaurant) throw new Error('Restaurant not found');
+
+    const details = await feedbackAnalyticsService.getAllFeedbackDetails(restaurantId);
+
+    const slug = restaurant.x_name.replace(/\s+/g, '-').toLowerCase();
+    const filename = `${slug}-feedback-details-${Date.now()}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    this.registerFonts(doc);
+    doc.pipe(res);
+
+    this.drawHeader(doc, restaurant.x_name, restaurant.x_location, 'All Feedback');
+    this.drawFeedbackDetailsTable(doc, details);
+
+    doc.end();
+  }
+
+  private drawFeedbackDetailsTable(doc: PDFKit.PDFDocument, rows: FeedbackDetail[]) {
+    this.eyebrow(doc, 'ALL FEEDBACK', doc.y);
+    doc.moveDown(0.9);
+
+    const colX = [50, 165, 285, 365, 435, 480];
+    const rowH = 22;
+    let y = doc.y;
+
+    const drawTableHeader = () => {
+      doc.rect(50, y, 495, rowH).fillColor(TINT).fill();
+      doc.moveTo(50, y + rowH).lineTo(545, y + rowH).lineWidth(1).strokeColor(GOLD).stroke();
+      doc.font(this.fonts.monoMedium).fontSize(7).fillColor(MUTED);
+      doc.text('CUSTOMER', colX[0], y + 7);
+      doc.text('EMAIL', colX[1], y + 7);
+      doc.text('RECEIPT #', colX[2], y + 7);
+      doc.text('WAITER', colX[3], y + 7);
+      doc.text('OVERALL', colX[4], y + 7);
+      doc.text('DATE', colX[5], y + 7);
+      y += rowH;
+    };
+
+    drawTableHeader();
+
+    for (const r of rows) {
+      if (y > 750) { doc.addPage(); y = 50; drawTableHeader(); }
+
+      doc.font(this.fonts.body).fontSize(8).fillColor(NAVY);
+      doc.text(r.customer_name, colX[0], y + 6, { width: 110 });
+      doc.font(this.fonts.mono).fontSize(7.5).fillColor(MUTED);
+      doc.text(r.customer_email, colX[1], y + 6, { width: 115 });
+      doc.text(r.receipt_no, colX[2], y + 6, { width: 75 });
+      doc.font(this.fonts.body).fontSize(8).fillColor(NAVY);
+      doc.text(r.waiter_name, colX[3], y + 6, { width: 65 });
+      doc.font(this.fonts.mono).fontSize(8).fillColor(MUTED);
+      doc.text(String(r.overall_rating), colX[4], y + 6);
+      doc.text(new Date(r.date).toLocaleDateString(), colX[5], y + 6);
+
+      doc.moveTo(50, y + rowH).lineTo(545, y + rowH).lineWidth(0.5).strokeColor(HAIRLINE).stroke();
+      y += rowH;
+    }
+
+    doc.y = y + 20;
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────

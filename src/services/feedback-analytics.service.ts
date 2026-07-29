@@ -83,6 +83,70 @@ export interface MonthlyReportEntry {
   feedbackCount: number;
   averageOverallRating: number;
 }
+export interface FeedbackDetail {
+  id: string;
+  customer_name: string;
+  customer_email: string;
+  receipt_no: string;
+  waiter_name: string;
+  friendliness_rating: Rating;
+  attentiveness_rating: Rating;
+  menu_knowledge_rating: Rating;
+  service_speed_rating: Rating;
+  food_quality_rating: Rating;
+  cleanliness_rating: Rating;
+  overall_rating: Rating;
+  bartender_friendliness_rating: Rating;
+  bartender_drink_knowledge_rating: Rating;
+  bartender_speed_rating: Rating;
+  bartender_welcome_rating: Rating;
+  bartender_overall_rating: Rating;
+  hostess_friendliness_rating: Rating;
+  hostess_seating_rating: Rating;
+  hostess_welcome_rating: Rating;
+  hostess_communication_rating: Rating;
+  hostess_overall_rating: Rating;
+  recommendation: Recommendation;
+  comment?: string;
+  date: Date;
+}
+
+export interface FeedbackDetailsPage {
+  total: number;
+  page: number;
+  pageSize: number;
+  data: FeedbackDetail[];
+}
+
+function mapToDetail(r: any): FeedbackDetail {
+  return {
+    id: r._id.toString(),
+    customer_name: r.x_customer_name,
+    customer_email: r.x_customer_email,
+    receipt_no: r.x_receipt_no,
+    waiter_name: r.x_waiter_name,
+    friendliness_rating: r.x_friendliness_rating,
+    attentiveness_rating: r.x_attentiveness_rating,
+    menu_knowledge_rating: r.x_menu_knowledge_rating,
+    service_speed_rating: r.x_service_speed_rating,
+    food_quality_rating: r.x_food_quality_rating,
+    cleanliness_rating: r.x_cleanliness_rating,
+    overall_rating: r.x_overall_rating,
+    bartender_friendliness_rating: r.x_bartender_friendliness_rating,
+    bartender_drink_knowledge_rating: r.x_bartender_drink_knowledge_rating,
+    bartender_speed_rating: r.x_bartender_speed_rating,
+    bartender_welcome_rating: r.x_bartender_welcome_rating,
+    bartender_overall_rating: r.x_bartender_overall_rating,
+    hostess_friendliness_rating: r.x_hostess_friendliness_rating,
+    hostess_seating_rating: r.x_hostess_seating_rating,
+    hostess_welcome_rating: r.x_hostess_welcome_rating,
+    hostess_communication_rating: r.x_hostess_communication_rating,
+    hostess_overall_rating: r.x_hostess_overall_rating,
+    recommendation: r.x_recommendation,
+    comment: r.x_comment,
+    date: r.x_date,
+  };
+}
 class FeedbackAnalyticsService {
 
   async getOverview(restaurantId?: string): Promise<OverviewStats> {
@@ -357,6 +421,28 @@ class FeedbackAnalyticsService {
       });
     }
     return result;
+  }
+  // ── Paginated, full-detail feed for the "All Feedback" table ──
+  async getFeedbackDetails(
+    restaurantId?: string,
+    page = 1,
+    pageSize = 20,
+  ): Promise<FeedbackDetailsPage> {
+    const match = matchStage(restaurantId);
+    const skip = (page - 1) * pageSize;
+
+    const [total, rows] = await Promise.all([
+      FeedbackModel.countDocuments(match),
+      FeedbackModel.find(match).sort({ x_date: -1 }).skip(skip).limit(pageSize).lean(),
+    ]);
+
+    return { total, page, pageSize, data: rows.map(mapToDetail) };
+  }
+
+  // ── Unpaginated — used by PDF/Excel export, which need every row ──
+  async getAllFeedbackDetails(restaurantId?: string): Promise<FeedbackDetail[]> {
+    const rows = await FeedbackModel.find(matchStage(restaurantId)).sort({ x_date: -1 }).lean();
+    return rows.map(mapToDetail);
   }
 }
 
