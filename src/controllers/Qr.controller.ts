@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import { restaurantService }  from '../services/restaurant.service';
 import { errorResponse, successResponse } from '../models/response.model';
 import { qrService } from '../services/Qr.service';
-import { buildPrintHtml } from '../shared/script/qr-print.view';
+import { buildPrintHtml, buildThermalPrintHtml } from '../shared/script/qr-print.view';
 import ScanLog from "../models/ScanLog.model"
 
 
@@ -27,6 +27,27 @@ export class QrController {
       res.status(status).json(errorResponse(err.message));
     }
   }
+  
+// QrController — add this method
+
+async getThermalPrintPage(req: Request, res: Response): Promise<void> {
+  try {
+    const id = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(id as string)) {
+      res.status(400).send('Invalid restaurant ID'); return;
+    }
+
+    const paperWidth = req.query.width === '58' ? 58 : 80;
+    const { dataUrl, restaurant } = await qrService.generateQrDataUrl(id as string);
+    const html = buildThermalPrintHtml(restaurant.x_name, dataUrl, paperWidth);
+
+    res.setHeader('Content-Type', 'text/html');
+    res.status(200).send(html);
+  } catch (err: any) {
+    const status = err.message === 'Restaurant not found' ? 404 : 500;
+    res.status(status).send(err.message);
+  }
+}
 
  async getPrintPage(req: Request, res: Response): Promise<void> {
   try {

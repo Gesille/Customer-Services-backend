@@ -16,5 +16,5 @@ restaurantRouter.get ('/:id',           readLimiter, restaurantController.getByI
 restaurantRouter.get ('/:id/qr',        readLimiter, qrController.getQrImage.bind(qrController));
 restaurantRouter.get ('/:id/qr/print',  readLimiter, qrController.getPrintPage.bind(qrController));
 restaurantRouter.post('/:id/qr/generate',             qrController.generateQr.bind(qrController));
-
+restaurantRouter.get('/thermal-print/:id', qrController.getThermalPrintPage.bind(qrController));
 export default router;
