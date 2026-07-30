@@ -27,7 +27,7 @@ export class QrService {
   }
   async generateThermalQrBuffer(
   restaurantId: string,
-  sizePx: number = 300,
+  sizePx: number = 150,
 ): Promise<{ buffer: Buffer; restaurant: Restaurant }> {
   const restaurant = await restaurantService.getById(restaurantId);
   if (!restaurant) throw new Error('Restaurant not found');
