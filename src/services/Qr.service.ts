@@ -25,6 +25,23 @@ export class QrService {
 
     return { buffer, restaurant };
   }
+  async generateThermalQrBuffer(
+  restaurantId: string,
+  sizePx: number = 300,
+): Promise<{ buffer: Buffer; restaurant: Restaurant }> {
+  const restaurant = await restaurantService.getById(restaurantId);
+  if (!restaurant) throw new Error('Restaurant not found');
+
+  const buffer = await QRCode.toBuffer(this.buildFeedbackUrl(restaurant.x_qr_token), {
+    type: 'png',
+    width: sizePx,
+    margin: 1,                 // tight border, not the 2-module margin from the sticker version
+    errorCorrectionLevel: 'M', // 'H' (used elsewhere) adds density you don't need here
+    color: { dark: '#000000', light: '#ffffff' }, // pure black/white — thermal printers dither grays badly
+  });
+
+  return { buffer, restaurant };
+}
 
   async generateQrDataUrl(restaurantId: string): Promise<{
     dataUrl:     string;

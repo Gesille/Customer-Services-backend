@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import { restaurantService }  from '../services/restaurant.service';
 import { errorResponse, successResponse } from '../models/response.model';
 import { qrService } from '../services/Qr.service';
-import { buildPrintHtml, buildThermalPrintHtml } from '../shared/script/qr-print.view';
+import { buildPrintHtml } from '../shared/script/qr-print.view';
 import ScanLog from "../models/ScanLog.model"
 
 
@@ -27,25 +27,28 @@ export class QrController {
       res.status(status).json(errorResponse(err.message));
     }
   }
-  
-// QrController — add this method
+  // Add to QrController
 
-async getThermalPrintPage(req: Request, res: Response): Promise<void> {
+async downloadThermalQr(req: Request, res: Response): Promise<void> {
   try {
     const id = req.params.id;
     if (!mongoose.Types.ObjectId.isValid(id as string)) {
-      res.status(400).send('Invalid restaurant ID'); return;
+      res.status(400).json(errorResponse('Invalid restaurant ID')); return;
     }
 
-    const paperWidth = req.query.width === '58' ? 58 : 80;
-    const { dataUrl, restaurant } = await qrService.generateQrDataUrl(id as string);
-    const html = buildThermalPrintHtml(restaurant.x_name, dataUrl, paperWidth);
+    // Query param lets you tune size per printer without redeploying.
+    // 200–300px is plenty for a receipt footer; default 250.
+    const size = Math.min(Math.max(Number(req.query.size) || 250, 100), 600);
 
-    res.setHeader('Content-Type', 'text/html');
-    res.status(200).send(html);
+    const { buffer, restaurant } = await qrService.generateThermalQrBuffer(id as string, size);
+    const slug = restaurant.x_name.replace(/\s+/g, '-').toLowerCase();
+
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Disposition', `attachment; filename="qr-footer-${slug}.png"`); // attachment = forces download
+    res.status(200).send(buffer);
   } catch (err: any) {
     const status = err.message === 'Restaurant not found' ? 404 : 500;
-    res.status(status).send(err.message);
+    res.status(status).json(errorResponse(err.message));
   }
 }
 
