@@ -13,5 +13,5 @@ jobRouter.get('/job-filter-restaurant/:restaurantId', (req, res) => jobControlle
 jobRouter.post('/create-job', isAuthenticated, authorizeRoles('admin'), (req, res) => jobController.create(req, res));
 jobRouter.put('/update-job/:id', isAuthenticated, authorizeRoles('admin'), (req, res) => jobController.update(req, res));
 jobRouter.delete('/delete-job/:id', isAuthenticated, authorizeRoles('admin'), (req, res) => jobController.delete(req, res));
-
+jobRouter.get('/alerts', isAuthenticated, authorizeRoles('admin'), (req, res) => jobController.getAlerts(req, res));
 export default jobRouter;

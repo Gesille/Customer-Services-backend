@@ -96,6 +96,29 @@ export class JobService {
     const doc = await JobModel.findByIdAndDelete(id);
     return Boolean(doc);
   }
+  async getExpiringSoon(days = 7): Promise<{ expiringSoon: Job[]; overdue: Job[] }> {
+  const now = new Date();
+  const soon = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+
+  const [expiringDocs, overdueDocs] = await Promise.all([
+    JobModel.find({
+      status: 'open',
+      closing_date: { $gte: now, $lte: soon },
+    })
+      .populate('restaurant_id', 'x_name x_location')
+      .sort({ closing_date: 1 })
+      .lean(),
+    JobModel.find({
+      status: 'open',
+      closing_date: { $lt: now },
+    })
+      .populate('restaurant_id', 'x_name x_location')
+      .sort({ closing_date: 1 })
+      .lean(),
+  ]);
+
+  return { expiringSoon: expiringDocs.map(toJob), overdue: overdueDocs.map(toJob) };
+}
 }
 
 export const jobService = new JobService();

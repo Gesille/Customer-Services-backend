@@ -201,6 +201,15 @@ export class JobController {
       res.status(500).json(errorResponse('Failed to delete job', err.message));
     }
   }
+  async getAlerts(req: Request, res: Response): Promise<void> {
+  try {
+    const days = req.query.days ? Number(req.query.days) : 7;
+    const alerts = await jobService.getExpiringSoon(days);
+    res.status(200).json(successResponse('Job alerts fetched', alerts));
+  } catch (err: any) {
+    res.status(500).json(errorResponse('Failed to fetch job alerts', err.message));
+  }
+}
 }
 
 export const jobController = new JobController();
