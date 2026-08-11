@@ -417,6 +417,52 @@ export class EmployeeController {
     } catch (err: any) {
       res.status(500).json(errorResponse('Failed to update potential bonus', err.message));
     }
+    
+  }
+  // ── PUT /employees/:id — Personal / Address / Contact / Self-service access ──
+  async updateBasicInfo(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      if (!isValidId(id)) { res.status(400).json(errorResponse('Invalid employee ID')); return; }
+
+      const body = req.body || {};
+
+      if (body.work_email && !EMAIL_RE.test(body.work_email)) {
+        res.status(400).json(errorResponse('Invalid work email format')); return;
+      }
+      if (body.home_email && !EMAIL_RE.test(body.home_email)) {
+        res.status(400).json(errorResponse('Invalid home email format')); return;
+      }
+      if (body.self_service_access && !['full_access', 'no_access'].includes(body.self_service_access)) {
+        res.status(400).json(errorResponse('self_service_access must be "full_access" or "no_access"')); return;
+      }
+      if (body.first_name !== undefined && !String(body.first_name).trim()) {
+        res.status(400).json(errorResponse('First Name cannot be empty')); return;
+      }
+      if (body.last_name !== undefined && !String(body.last_name).trim()) {
+        res.status(400).json(errorResponse('Last Name cannot be empty')); return;
+      }
+
+      const data: Record<string, any> = {};
+      const stringFields = [
+        'employee_number', 'first_name', 'middle_name', 'last_name', 'preferred_name',
+        'gender', 'marital_status',
+        'street1', 'street2', 'city', 'province', 'postal_code', 'country',
+        'work_phone', 'work_phone_ext', 'mobile_phone', 'home_phone',
+        'self_service_access',
+      ];
+      stringFields.forEach((f) => { if (body[f] !== undefined) data[f] = body[f]; });
+      if (body.birth_date !== undefined) data.birth_date = new Date(body.birth_date);
+      if (body.work_email !== undefined) data.work_email = String(body.work_email).trim().toLowerCase();
+      if (body.home_email !== undefined) data.home_email = String(body.home_email).trim().toLowerCase();
+
+      const employee = await employeeService.updateBasicInfo(id as string, data);
+      if (!employee) { res.status(404).json(errorResponse('Employee not found')); return; }
+
+      res.status(200).json(successResponse('Employee updated', employee));
+    } catch (err: any) {
+      res.status(500).json(errorResponse('Failed to update employee', err.message));
+    }
   }
 }
 

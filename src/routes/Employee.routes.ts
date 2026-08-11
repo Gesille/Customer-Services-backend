@@ -90,5 +90,10 @@ employeeRouter.put(
   isAuthenticated, authorizeRoles('admin'),
   (req, res) => employeeController.updatePotentialBonus(req, res),
 );
-
+// ── Update basic info (Personal / Address / Contact / Access) ────────────
+employeeRouter.put(
+  '/:id',
+  isAuthenticated, authorizeRoles('admin'),
+  (req, res) => employeeController.updateBasicInfo(req, res),
+);
 export default employeeRouter;

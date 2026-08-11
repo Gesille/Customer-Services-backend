@@ -5,10 +5,7 @@ import { SelfServiceAccess, EmployeeDocument, EmployeeModel } from '../models/Em
 // DTOs
 // ─────────────────────────────────────────────────────────────────────────
 
-// Mirrors the "New Employee" form exactly (Personal / Address / Job /
-// Contact / Employment Status / Job Information / Compensation / Self-service access)
 export interface CreateEmployeeDto {
-  // Personal
   employee_number?: string;
   first_name: string;
   middle_name?: string;
@@ -18,7 +15,6 @@ export interface CreateEmployeeDto {
   gender?: string;
   marital_status?: string;
 
-  // Address
   street1?: string;
   street2?: string;
   city?: string;
@@ -26,10 +22,8 @@ export interface CreateEmployeeDto {
   postal_code?: string;
   country?: string;
 
-  // Job (hire date only, at creation time)
   hire_date?: Date;
 
-  // Contact
   work_phone?: string;
   work_phone_ext?: string;
   mobile_phone?: string;
@@ -37,24 +31,48 @@ export interface CreateEmployeeDto {
   work_email?: string;
   home_email?: string;
 
-  // Employment Status (initial)
   employment_status?: string;
 
-  // Job Information (initial)
   job_title?: string;
-  reports_to?: string; // Employee id
+  reports_to?: string;
   department?: string;
   division?: string;
   location?: string;
 
-  // Compensation (initial)
   pay_schedule?: string;
   pay_type?: string;
   pay_rate_amount?: number;
   pay_rate_currency?: string;
   pay_rate_per?: string;
 
-  // Self-service access
+  self_service_access?: SelfServiceAccess;
+}
+
+// Basic info panel — everything editable in place (Personal / Address / Contact / Access)
+export interface UpdateBasicInfoDto {
+  employee_number?: string;
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
+  preferred_name?: string;
+  birth_date?: Date;
+  gender?: string;
+  marital_status?: string;
+
+  street1?: string;
+  street2?: string;
+  city?: string;
+  province?: string;
+  postal_code?: string;
+  country?: string;
+
+  work_phone?: string;
+  work_phone_ext?: string;
+  mobile_phone?: string;
+  home_phone?: string;
+  work_email?: string;
+  home_email?: string;
+
   self_service_access?: SelfServiceAccess;
 }
 
@@ -73,10 +91,34 @@ export interface EmployeeSummary {
   self_service_access: SelfServiceAccess;
 }
 
+// Full raw field set, so the edit form can prefill everything.
 export interface EmployeeVitals {
+  employee_number?: string;
+  first_name: string;
+  middle_name?: string;
+  last_name: string;
+  preferred_name?: string;
+  birth_date?: Date;
+  gender?: string;
+  marital_status?: string;
+
+  street1?: string;
+  street2?: string;
+  city?: string;
+  province?: string;
+  postal_code?: string;
+  country?: string;
+  address?: string; // derived display string
+
+  work_phone?: string;
+  work_phone_ext?: string;
   mobile_phone?: string;
+  home_phone?: string;
   work_email?: string;
-  address?: string;
+  home_email?: string;
+
+  self_service_access: SelfServiceAccess;
+
   job_title?: string;
   employment_status?: string;
   department?: string;
@@ -86,17 +128,12 @@ export interface EmployeeVitals {
   manager?: { id: string; name: string; job_title?: string } | null;
 }
 
-// BambooHR distinguishes currently-effective records from ones that are
-// scheduled to take effect later (a promotion or raise dated next month,
-// for example) rather than just showing "the newest row". Every
-// effective-dated table in the Job tab is shaped like this.
 export interface EffectiveDatedResult<T> {
-  current?: T;   // the entry in effect as of today (most recent date <= now)
-  history: T[];  // past entries, newest first, excluding `current`
-  future: T[];   // entries dated after today, soonest first
+  current?: T;
+  history: T[];
+  future: T[];
 }
 
-// Full "Job" tab payload — matches the screenshots section-by-section
 export interface EmployeeJobTab {
   job: {
     hire_date?: Date;
@@ -107,12 +144,10 @@ export interface EmployeeJobTab {
     contracted_hours_per_week?: number;
     contracted_days_per_week?: number;
   };
-  // Effective-dated state tables — support current/history/future
   employment_status: EffectiveDatedResult<any>;
   compensation: EffectiveDatedResult<any>;
   allowances: EffectiveDatedResult<any>;
   job_information: EffectiveDatedResult<any>;
-  // Event logs (not "effective state", just a dated ledger) — flat, newest first
   pay_rates?: EmployeeDocument['pay_rates'];
   airport_security_pass_history: any[];
   potential_bonus?: EmployeeDocument['potential_bonus'];
@@ -124,8 +159,62 @@ export interface EmployeeJobTab {
 export interface EmployeeProfile {
   id: string;
   full_name: string;
-  vitals: EmployeeVitals;
-  job_tab: EmployeeJobTab;
+  vitals: {
+    employee_number?: string;
+    first_name: string;
+    middle_name?: string;
+    last_name: string;
+    preferred_name?: string;
+    birth_date?: string;
+    gender?: string;
+    marital_status?: string;
+
+    street1?: string;
+    street2?: string;
+    city?: string;
+    province?: string;
+    postal_code?: string;
+    country?: string;
+    address?: string;
+
+    work_phone?: string;
+    work_phone_ext?: string;
+    mobile_phone?: string;
+    home_phone?: string;
+    work_email?: string;
+    home_email?: string;
+
+    self_service_access: "full_access" | "no_access";
+
+    job_title?: string;
+    employment_status?: string;
+    department?: string;
+    company_name?: string;
+    hire_date?: string;
+    tenure_days?: number;
+    manager?: { id: string; name: string; job_title?: string } | null;
+  };
+  job_tab: {
+    job: {
+      hire_date?: string;
+      job_code?: string;
+      direct_reports_count: number;
+      probation_end_date?: string;
+      contract_end_date?: string;
+      contracted_hours_per_week?: number;
+      contracted_days_per_week?: number;
+    };
+    employment_status: { current?: any; history: any[]; future: any[] };
+    compensation: { current?: any; history: any[]; future: any[] };
+    allowances: { current?: any; history: any[]; future: any[] };
+    job_information: { current?: any; history: any[]; future: any[] };
+    pay_rates?: any;
+    airport_security_pass_history: any[];
+    potential_bonus?: any;
+    bonus_history: any[];
+    commission_history: any[];
+    equity_history: any[];
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -136,11 +225,6 @@ function fullName(doc: any): string {
   return [doc.first_name, doc.last_name].filter(Boolean).join(' ');
 }
 
-// Splits an effective-dated array into { current, history, future } the way
-// BambooHR's API does: `current` is the latest entry whose date is <= now,
-// `history` is everything older than that (newest first), and `future` is
-// anything dated after today (soonest first) — e.g. a promotion that hasn't
-// kicked in yet.
 function splitEffectiveDated<T extends Record<string, any>>(
   entries: T[],
   dateField: string,
@@ -154,7 +238,7 @@ function splitEffectiveDated<T extends Record<string, any>>(
   const future = sorted.filter((e) => new Date(e[dateField]).getTime() > now);
 
   const current = past.length ? past[past.length - 1] : undefined;
-  const history = past.slice(0, -1).reverse(); // newest-first, excluding current
+  const history = past.slice(0, -1).reverse();
 
   return { current, history, future };
 }
@@ -218,9 +302,32 @@ async function toProfile(doc: any): Promise<EmployeeProfile> {
     id: doc._id.toString(),
     full_name: fullName(doc),
     vitals: {
-      mobile_phone: doc.mobile_phone,
-      work_email: doc.work_email,
+      employee_number: doc.employee_number,
+      first_name: doc.first_name,
+      middle_name: doc.middle_name,
+      last_name: doc.last_name,
+      preferred_name: doc.preferred_name,
+      birth_date: doc.birth_date,
+      gender: doc.gender,
+      marital_status: doc.marital_status,
+
+      street1: doc.street1,
+      street2: doc.street2,
+      city: doc.city,
+      province: doc.province,
+      postal_code: doc.postal_code,
+      country: doc.country,
       address: addressParts.length ? addressParts.join(', ') : undefined,
+
+      work_phone: doc.work_phone,
+      work_phone_ext: doc.work_phone_ext,
+      mobile_phone: doc.mobile_phone,
+      home_phone: doc.home_phone,
+      work_email: doc.work_email,
+      home_email: doc.home_email,
+
+      self_service_access: doc.self_service_access,
+
       job_title: currentJobInfo?.job_title,
       employment_status: employmentStatus.current?.employment_status,
       department: currentJobInfo?.department,
@@ -266,7 +373,6 @@ async function toProfile(doc: any): Promise<EmployeeProfile> {
 // ─────────────────────────────────────────────────────────────────────────
 
 export class EmployeeService {
-  // ── Create (powers the "New Employee" form) ──────────────────────────
   async create(dto: CreateEmployeeDto): Promise<string> {
     const doc = await EmployeeModel.create({
       employee_number: dto.employee_number,
@@ -331,14 +437,12 @@ export class EmployeeService {
     return doc._id.toString();
   }
 
-  // ── List all employees (summary row per employee) ────────────────────
   async getAll(search?: string): Promise<EmployeeSummary[]> {
     const query: Record<string, any> = search ? { $text: { $search: search } } : {};
     const docs = await EmployeeModel.find(query).sort({ createdAt: -1 }).lean();
     return docs.map(toSummary);
   }
 
-  // ── Single employee — vitals + full Job tab ───────────────────────────
   async getById(id: string): Promise<EmployeeProfile | null> {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
     const doc = await EmployeeModel.findById(id).lean();
@@ -351,7 +455,14 @@ export class EmployeeService {
     return Boolean(doc);
   }
 
-  // ── Core Job panel (Hire Date / Job Code / Probation End / Contract End / Contracted Hours+Days) ──
+  // ── Basic info panel — Personal / Address / Contact / Access, all flat fields ──
+  async updateBasicInfo(id: string, data: UpdateBasicInfoDto): Promise<EmployeeProfile | null> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    const doc = await EmployeeModel.findByIdAndUpdate(id, data, { new: true, runValidators: true }).lean();
+    return doc ? toProfile(doc) : null;
+  }
+
+  // ── Core Job panel ─────────────────────────────────────────────────────
   async updateJobCore(
     id: string,
     data: Partial<
@@ -367,11 +478,10 @@ export class EmployeeService {
     >,
   ): Promise<EmployeeProfile | null> {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    const doc = await EmployeeModel.findByIdAndUpdate(id, data, { new: true }).lean();
+    const doc = await EmployeeModel.findByIdAndUpdate(id, data, { new: true, runValidators: true }).lean();
     return doc ? toProfile(doc) : null;
   }
 
-  // ── History-table "Add Entry" actions ─────────────────────────────────
   async addEmploymentStatusEntry(id: string, entry: { effective_date: Date; employment_status: string; comment?: string }) {
     return this.pushEntry(id, 'employment_status_history', entry);
   }
@@ -459,7 +569,6 @@ export class EmployeeService {
     return this.pushEntry(id, 'equity_history', entry);
   }
 
-  // ── Single-value panels (Pay Rates, Potential Bonus) ──────────────────
   async updatePayRates(
     id: string,
     payRates: { daily?: number; holiday?: number; sick?: number; vacation_pay_in_lieu_rate?: number },
@@ -482,7 +591,6 @@ export class EmployeeService {
     return doc ? toProfile(doc) : null;
   }
 
-  // ── Shared "push into a history array" helper ─────────────────────────
   private async pushEntry(id: string, field: string, entry: Record<string, any>): Promise<EmployeeProfile | null> {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
     const doc = await EmployeeModel.findByIdAndUpdate(
