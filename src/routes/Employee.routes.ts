@@ -12,6 +12,29 @@ employeeRouter.get(
   readLimiter, isAuthenticated, authorizeRoles('admin'),
   (req, res) => employeeController.getAll(req, res),
 );
+
+// ⚠️ All literal (non-`:id`) GET routes MUST be declared here, before
+// GET '/:id' below. Express matches routes top-to-bottom, and ':id'
+// matches ANY single path segment — including "analytics", "probation",
+// etc. If a literal route is declared after '/:id', it will never be
+// reached; the request gets swallowed by getById() first.
+employeeRouter.get(
+  '/analytics',
+  readLimiter, isAuthenticated, authorizeRoles('admin'),
+  (req, res) => employeeController.getAnalytics(req, res),
+);
+employeeRouter.get(
+  '/probation/pending',
+  readLimiter, isAuthenticated, authorizeRoles('admin'),
+  (req, res) => employeeController.getPendingProbationReviews(req, res),
+);
+employeeRouter.get(
+  '/contracts/near-end',
+  readLimiter, isAuthenticated, authorizeRoles('admin'),
+  (req, res) => employeeController.getContractsNearingEnd(req, res),
+);
+
+// ── Single-employee lookup — must come AFTER every literal GET route above ──
 employeeRouter.get(
   '/:id',
   readLimiter, isAuthenticated, authorizeRoles('admin'),
@@ -90,17 +113,12 @@ employeeRouter.put(
   isAuthenticated, authorizeRoles('admin'),
   (req, res) => employeeController.updatePotentialBonus(req, res),
 );
+
 // ── Update basic info (Personal / Address / Contact / Access) ────────────
 employeeRouter.put(
   '/:id',
   isAuthenticated, authorizeRoles('admin'),
   (req, res) => employeeController.updateBasicInfo(req, res),
-);
-// must come before GET '/:id'
-employeeRouter.get(
-  '/probation/pending',
-  readLimiter, isAuthenticated, authorizeRoles('admin'),
-  (req, res) => employeeController.getPendingProbationReviews(req, res),
 );
 
 // alongside the other POST /:id/job/* routes
@@ -109,12 +127,5 @@ employeeRouter.post(
   isAuthenticated, authorizeRoles('admin'),
   (req, res) => employeeController.resolveProbation(req, res),
 );
-employeeRouter.get('/contracts/near-end', readLimiter, isAuthenticated, authorizeRoles('admin'),
-  (req, res) => employeeController.getContractsNearingEnd(req, res));
-  employeeRouter.get(
-  '/analytics-employee',
-  readLimiter, isAuthenticated, authorizeRoles('admin'),
-  (req, res) => employeeController.getAnalytics(req, res),
-);
- 
+
 export default employeeRouter;
