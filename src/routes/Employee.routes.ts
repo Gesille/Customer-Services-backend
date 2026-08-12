@@ -112,7 +112,7 @@ employeeRouter.post(
 employeeRouter.get('/contracts/near-end', readLimiter, isAuthenticated, authorizeRoles('admin'),
   (req, res) => employeeController.getContractsNearingEnd(req, res));
   employeeRouter.get(
-  '/analytics',
+  '/analytics-employee',
   readLimiter, isAuthenticated, authorizeRoles('admin'),
   (req, res) => employeeController.getAnalytics(req, res),
 );
