@@ -464,6 +464,38 @@ export class EmployeeController {
       res.status(500).json(errorResponse('Failed to update employee', err.message));
     }
   }
+  async resolveProbation(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    if (!isValidId(id)) { res.status(400).json(errorResponse('Invalid employee ID')); return; }
+
+    const { passed, effective_date, new_status, comment } = req.body;
+    if (typeof passed !== 'boolean') {
+      res.status(400).json(errorResponse('passed (boolean) is required')); return;
+    }
+
+    const employee = await employeeService.resolveProbation(id as string, {
+      passed,
+      effective_date: effective_date ? new Date(effective_date) : undefined,
+      new_status,
+      comment,
+    });
+    if (!employee) { res.status(404).json(errorResponse('Employee not found')); return; }
+
+    res.status(200).json(successResponse('Probation review recorded', employee));
+  } catch (err: any) {
+    res.status(500).json(errorResponse('Failed to record probation review', err.message));
+  }
+}
+
+async getPendingProbationReviews(req: Request, res: Response): Promise<void> {
+  try {
+    const employees = await employeeService.getPendingProbationReviews();
+    res.status(200).json(successResponse('Pending probation reviews fetched', employees));
+  } catch (err: any) {
+    res.status(500).json(errorResponse('Failed to fetch pending probation reviews', err.message));
+  }
+}
 }
 
 export const employeeController = new EmployeeController();

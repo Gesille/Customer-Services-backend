@@ -140,6 +140,7 @@ export interface EmployeeJobTab {
     job_code?: string;
     direct_reports_count: number;
     probation_end_date?: Date;
+    probation_pending?: boolean;
     contract_end_date?: Date;
     contracted_hours_per_week?: number;
     contracted_days_per_week?: number;
@@ -200,6 +201,7 @@ export interface EmployeeProfile {
       job_code?: string;
       direct_reports_count: number;
       probation_end_date?: string;
+      probation_pending?: boolean;
       contract_end_date?: string;
       contracted_hours_per_week?: number;
       contracted_days_per_week?: number;
@@ -220,7 +222,11 @@ export interface EmployeeProfile {
 // ─────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────
-
+function addMonths(date: Date, months: number): Date {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + months);
+  return d;
+}
 function fullName(doc: any): string {
   return [doc.first_name, doc.last_name].filter(Boolean).join(' ');
 }
@@ -337,15 +343,20 @@ async function toProfile(doc: any): Promise<EmployeeProfile> {
       manager,
     },
     job_tab: {
-      job: {
-        hire_date: doc.hire_date,
-        job_code: doc.job_code,
-        direct_reports_count: directReportsCount,
-        probation_end_date: doc.probation_end_date,
-        contract_end_date: doc.contract_end_date,
-        contracted_hours_per_week: doc.contracted_hours_per_week,
-        contracted_days_per_week: doc.contracted_days_per_week,
-      },
+   job: {
+  hire_date: doc.hire_date,
+  job_code: doc.job_code,
+  direct_reports_count: directReportsCount,
+  probation_end_date: doc.probation_end_date,
+  probation_pending: Boolean(
+    doc.probation_end_date &&
+    new Date(doc.probation_end_date).getTime() <= Date.now() &&
+    employmentStatus.current?.employment_status?.toLowerCase().includes('probation'),
+  ),
+  contract_end_date: doc.contract_end_date,
+  contracted_hours_per_week: doc.contracted_hours_per_week,
+  contracted_days_per_week: doc.contracted_days_per_week,
+},
       employment_status: employmentStatus,
       compensation,
       allowances,
@@ -402,9 +413,14 @@ export class EmployeeService {
 
       self_service_access: dto.self_service_access || 'no_access',
 
-      employment_status_history: dto.employment_status
-        ? [{ effective_date: dto.hire_date || new Date(), employment_status: dto.employment_status }]
-        : [],
+    probation_end_date: dto.hire_date ? addMonths(dto.hire_date, 4) : undefined,
+
+  employment_status_history: dto.hire_date || dto.employment_status
+    ? [{
+        effective_date: dto.hire_date || new Date(),
+        employment_status: dto.employment_status || 'Probation Full-time',
+      }]
+    : [],
 
       job_information_history: dto.job_title
         ? [
@@ -463,24 +479,45 @@ export class EmployeeService {
   }
 
   // ── Core Job panel ─────────────────────────────────────────────────────
-  async updateJobCore(
-    id: string,
-    data: Partial<
-      Pick<
-        EmployeeDocument,
-        | 'hire_date'
-        | 'job_code'
-        | 'probation_end_date'
-        | 'contract_end_date'
-        | 'contracted_hours_per_week'
-        | 'contracted_days_per_week'
-      >
-    >,
-  ): Promise<EmployeeProfile | null> {
-    if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    const doc = await EmployeeModel.findByIdAndUpdate(id, data, { new: true, runValidators: true }).lean();
-    return doc ? toProfile(doc) : null;
+  async resolveProbation(
+  id: string,
+  input: { passed: boolean; effective_date?: Date; new_status?: string; comment?: string },
+): Promise<EmployeeProfile | null> {
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
+  const employment_status = input.passed ? (input.new_status || 'Full-time') : 'Terminated';
+
+  return this.pushEntry(id, 'employment_status_history', {
+    effective_date: input.effective_date || new Date(),
+    employment_status,
+    comment: input.comment || (input.passed ? 'Probation passed' : 'Probation not passed'),
+  });
+}
+
+async getPendingProbationReviews(): Promise<EmployeeSummary[]> {
+  const now = new Date();
+  const docs = await EmployeeModel.find({ probation_end_date: { $ne: null, $lte: now } }).lean();
+
+  const pending = docs.filter((doc: any) => {
+    const current = splitEffectiveDated(doc.employment_status_history || [], 'effective_date').current;
+    return current?.employment_status?.toLowerCase().includes('probation');
+  });
+
+  return pending.map(toSummary);
+}
+
+ async updateJobCore(
+  id: string,
+  data: Partial<Pick<EmployeeDocument, 'hire_date' | 'job_code' | 'probation_end_date' | 'contract_end_date' | 'contracted_hours_per_week' | 'contracted_days_per_week'>>,
+): Promise<EmployeeProfile | null> {
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
+
+  if (data.hire_date && data.probation_end_date === undefined) {
+    data.probation_end_date = addMonths(data.hire_date, 4);
   }
+
+  const doc = await EmployeeModel.findByIdAndUpdate(id, data, { new: true, runValidators: true }).lean();
+  return doc ? toProfile(doc) : null;
+}
 
   async addEmploymentStatusEntry(id: string, entry: { effective_date: Date; employment_status: string; comment?: string }) {
     return this.pushEntry(id, 'employment_status_history', entry);

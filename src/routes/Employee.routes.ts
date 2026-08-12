@@ -96,4 +96,17 @@ employeeRouter.put(
   isAuthenticated, authorizeRoles('admin'),
   (req, res) => employeeController.updateBasicInfo(req, res),
 );
+// must come before GET '/:id'
+employeeRouter.get(
+  '/probation/pending',
+  readLimiter, isAuthenticated, authorizeRoles('admin'),
+  (req, res) => employeeController.getPendingProbationReviews(req, res),
+);
+
+// alongside the other POST /:id/job/* routes
+employeeRouter.post(
+  '/:id/job/probation-review',
+  isAuthenticated, authorizeRoles('admin'),
+  (req, res) => employeeController.resolveProbation(req, res),
+);
 export default employeeRouter;
