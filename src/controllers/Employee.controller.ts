@@ -503,6 +503,14 @@ async getPendingProbationReviews(req: Request, res: Response): Promise<void> {
     res.status(500).json(errorResponse('Failed to fetch pending probation reviews', err.message));
   }
 }
+async getAnalytics(req: Request, res: Response) {
+  try {
+    const analytics = await employeeService.getAnalytics();
+    res.status(200).json(successResponse('Employee analytics fetched', analytics));
+  } catch (err: any) {
+    res.status(500).json(errorResponse('Failed to fetch employee analytics', err.message));
+  }
+}
 }
 
 export const employeeController = new EmployeeController();

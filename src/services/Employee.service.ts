@@ -1,5 +1,9 @@
-import mongoose from 'mongoose';
-import { SelfServiceAccess, EmployeeDocument, EmployeeModel } from '../models/Employee.model';
+import mongoose from "mongoose";
+import {
+  SelfServiceAccess,
+  EmployeeDocument,
+  EmployeeModel,
+} from "../models/Employee.model";
 
 // ─────────────────────────────────────────────────────────────────────────
 // DTOs
@@ -149,9 +153,9 @@ export interface EmployeeJobTab {
   compensation: EffectiveDatedResult<any>;
   allowances: EffectiveDatedResult<any>;
   job_information: EffectiveDatedResult<any>;
-  pay_rates?: EmployeeDocument['pay_rates'];
+  pay_rates?: EmployeeDocument["pay_rates"];
   airport_security_pass_history: any[];
-  potential_bonus?: EmployeeDocument['potential_bonus'];
+  potential_bonus?: EmployeeDocument["potential_bonus"];
   bonus_history: any[];
   commission_history: any[];
   equity_history: any[];
@@ -218,7 +222,19 @@ export interface EmployeeProfile {
     equity_history: any[];
   };
 }
-
+export interface EmployeeAnalytics {
+  total: number;
+  fullAccess: number;
+  noAccess: number;
+  hiredThisMonth: number;
+  avgTenureDays: number;
+  byDepartment: { department: string; count: number }[];
+  byStatus: { status: string; count: number }[];
+  byLocation: { location: string; count: number }[];
+  hiringTrend: { month: string; hires: number }[]; // last 6 months, oldest → newest
+  probationPendingCount: number;
+  contractsNearingEndCount: number;
+}
 // ─────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────
@@ -228,7 +244,7 @@ function addMonths(date: Date, months: number): Date {
   return d;
 }
 function fullName(doc: any): string {
-  return [doc.first_name, doc.last_name].filter(Boolean).join(' ');
+  return [doc.first_name, doc.last_name].filter(Boolean).join(" ");
 }
 
 function splitEffectiveDated<T extends Record<string, any>>(
@@ -237,7 +253,8 @@ function splitEffectiveDated<T extends Record<string, any>>(
 ): EffectiveDatedResult<T> {
   const now = Date.now();
   const sorted = [...(entries || [])].sort(
-    (a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime(),
+    (a, b) =>
+      new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime(),
   );
 
   const past = sorted.filter((e) => new Date(e[dateField]).getTime() <= now);
@@ -256,8 +273,14 @@ function tenureDays(hireDate?: Date): number | undefined {
 }
 
 function toSummary(doc: any): EmployeeSummary {
-  const currentStatus = splitEffectiveDated(doc.employment_status_history || [], 'effective_date').current;
-  const currentJobInfo = splitEffectiveDated(doc.job_information_history || [], 'effective_date').current;
+  const currentStatus = splitEffectiveDated(
+    doc.employment_status_history || [],
+    "effective_date",
+  ).current;
+  const currentJobInfo = splitEffectiveDated(
+    doc.job_information_history || [],
+    "effective_date",
+  ).current;
 
   return {
     id: doc._id.toString(),
@@ -276,19 +299,33 @@ function toSummary(doc: any): EmployeeSummary {
 }
 
 async function toProfile(doc: any): Promise<EmployeeProfile> {
-  const employmentStatus = splitEffectiveDated(doc.employment_status_history || [], 'effective_date');
-  const compensation = splitEffectiveDated(doc.compensation_history || [], 'effective_date');
-  const allowances = splitEffectiveDated(doc.allowances_history || [], 'effective_date');
-  const jobInformation = splitEffectiveDated(doc.job_information_history || [], 'effective_date');
+  const employmentStatus = splitEffectiveDated(
+    doc.employment_status_history || [],
+    "effective_date",
+  );
+  const compensation = splitEffectiveDated(
+    doc.compensation_history || [],
+    "effective_date",
+  );
+  const allowances = splitEffectiveDated(
+    doc.allowances_history || [],
+    "effective_date",
+  );
+  const jobInformation = splitEffectiveDated(
+    doc.job_information_history || [],
+    "effective_date",
+  );
   const currentJobInfo = jobInformation.current;
 
-  let manager: EmployeeVitals['manager'] = null;
+  let manager: EmployeeVitals["manager"] = null;
   if (currentJobInfo?.reports_to) {
-    const mgrDoc = await EmployeeModel.findById(currentJobInfo.reports_to).lean();
+    const mgrDoc = await EmployeeModel.findById(
+      currentJobInfo.reports_to,
+    ).lean();
     if (mgrDoc) {
       const mgrCurrentJob = splitEffectiveDated(
         (mgrDoc as any).job_information_history || [],
-        'effective_date',
+        "effective_date",
       ).current;
       manager = {
         id: (mgrDoc as any)._id.toString(),
@@ -299,7 +336,7 @@ async function toProfile(doc: any): Promise<EmployeeProfile> {
   }
 
   const directReportsCount = await EmployeeModel.countDocuments({
-    'job_information_history.reports_to': doc._id,
+    "job_information_history.reports_to": doc._id,
   });
 
   const addressParts = [doc.street1, doc.city, doc.country].filter(Boolean);
@@ -323,7 +360,7 @@ async function toProfile(doc: any): Promise<EmployeeProfile> {
       province: doc.province,
       postal_code: doc.postal_code,
       country: doc.country,
-      address: addressParts.length ? addressParts.join(', ') : undefined,
+      address: addressParts.length ? addressParts.join(", ") : undefined,
 
       work_phone: doc.work_phone,
       work_phone_ext: doc.work_phone_ext,
@@ -343,27 +380,32 @@ async function toProfile(doc: any): Promise<EmployeeProfile> {
       manager,
     },
     job_tab: {
-   job: {
-  hire_date: doc.hire_date,
-  job_code: doc.job_code,
-  direct_reports_count: directReportsCount,
-  probation_end_date: doc.probation_end_date,
-  probation_pending: Boolean(
-    doc.probation_end_date &&
-    new Date(doc.probation_end_date).getTime() <= Date.now() &&
-    employmentStatus.current?.employment_status?.toLowerCase().includes('probation'),
-  ),
-  contract_end_date: doc.contract_end_date,
-  contracted_hours_per_week: doc.contracted_hours_per_week,
-  contracted_days_per_week: doc.contracted_days_per_week,
-},
+      job: {
+        hire_date: doc.hire_date,
+        job_code: doc.job_code,
+        direct_reports_count: directReportsCount,
+        probation_end_date: doc.probation_end_date,
+        probation_pending: Boolean(
+          doc.probation_end_date &&
+          new Date(doc.probation_end_date).getTime() <= Date.now() &&
+          employmentStatus.current?.employment_status
+            ?.toLowerCase()
+            .includes("probation"),
+        ),
+        contract_end_date: doc.contract_end_date,
+        contracted_hours_per_week: doc.contracted_hours_per_week,
+        contracted_days_per_week: doc.contracted_days_per_week,
+      },
       employment_status: employmentStatus,
       compensation,
       allowances,
       job_information: jobInformation,
       pay_rates: doc.pay_rates,
-      airport_security_pass_history: [...(doc.airport_security_pass_history || [])].sort(
-        (a, b) => new Date(b.issue_date).getTime() - new Date(a.issue_date).getTime(),
+      airport_security_pass_history: [
+        ...(doc.airport_security_pass_history || []),
+      ].sort(
+        (a, b) =>
+          new Date(b.issue_date).getTime() - new Date(a.issue_date).getTime(),
       ),
       potential_bonus: doc.potential_bonus,
       bonus_history: [...(doc.bonus_history || [])].sort(
@@ -373,7 +415,8 @@ async function toProfile(doc: any): Promise<EmployeeProfile> {
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
       ),
       equity_history: [...(doc.equity_history || [])].sort(
-        (a, b) => new Date(b.grant_date).getTime() - new Date(a.grant_date).getTime(),
+        (a, b) =>
+          new Date(b.grant_date).getTime() - new Date(a.grant_date).getTime(),
       ),
     },
   };
@@ -411,16 +454,22 @@ export class EmployeeService {
       work_email: dto.work_email,
       home_email: dto.home_email,
 
-      self_service_access: dto.self_service_access || 'no_access',
+      self_service_access: dto.self_service_access || "no_access",
 
-    probation_end_date: dto.hire_date ? addMonths(dto.hire_date, 4) : undefined,
+      probation_end_date: dto.hire_date
+        ? addMonths(dto.hire_date, 4)
+        : undefined,
 
-  employment_status_history: dto.hire_date || dto.employment_status
-    ? [{
-        effective_date: dto.hire_date || new Date(),
-        employment_status: dto.employment_status || 'Probation Full-time',
-      }]
-    : [],
+      employment_status_history:
+        dto.hire_date || dto.employment_status
+          ? [
+              {
+                effective_date: dto.hire_date || new Date(),
+                employment_status:
+                  dto.employment_status || "Probation Full-time",
+              },
+            ]
+          : [],
 
       job_information_history: dto.job_title
         ? [
@@ -443,8 +492,8 @@ export class EmployeeService {
                 pay_schedule: dto.pay_schedule,
                 pay_type: dto.pay_type,
                 pay_rate_amount: dto.pay_rate_amount,
-                pay_rate_currency: dto.pay_rate_currency || 'XCD',
-                pay_rate_per: dto.pay_rate_per || 'Pay Period',
+                pay_rate_currency: dto.pay_rate_currency || "XCD",
+                pay_rate_per: dto.pay_rate_per || "Pay Period",
               },
             ]
           : [],
@@ -454,7 +503,9 @@ export class EmployeeService {
   }
 
   async getAll(search?: string): Promise<EmployeeSummary[]> {
-    const query: Record<string, any> = search ? { $text: { $search: search } } : {};
+    const query: Record<string, any> = search
+      ? { $text: { $search: search } }
+      : {};
     const docs = await EmployeeModel.find(query).sort({ createdAt: -1 }).lean();
     return docs.map(toSummary);
   }
@@ -472,69 +523,114 @@ export class EmployeeService {
   }
 
   // ── Basic info panel — Personal / Address / Contact / Access, all flat fields ──
-  async updateBasicInfo(id: string, data: UpdateBasicInfoDto): Promise<EmployeeProfile | null> {
+  async updateBasicInfo(
+    id: string,
+    data: UpdateBasicInfoDto,
+  ): Promise<EmployeeProfile | null> {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    const doc = await EmployeeModel.findByIdAndUpdate(id, data, { new: true, runValidators: true }).lean();
+    const doc = await EmployeeModel.findByIdAndUpdate(id, data, {
+      new: true,
+      runValidators: true,
+    }).lean();
     return doc ? toProfile(doc) : null;
   }
 
   // ── Core Job panel ─────────────────────────────────────────────────────
   async resolveProbation(
-  id: string,
-  input: { passed: boolean; effective_date?: Date; new_status?: string; comment?: string },
-): Promise<EmployeeProfile | null> {
-  if (!mongoose.Types.ObjectId.isValid(id)) return null;
-  const employment_status = input.passed ? (input.new_status || 'Full-time') : 'Terminated';
+    id: string,
+    input: {
+      passed: boolean;
+      effective_date?: Date;
+      new_status?: string;
+      comment?: string;
+    },
+  ): Promise<EmployeeProfile | null> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    const employment_status = input.passed
+      ? input.new_status || "Full-time"
+      : "Terminated";
 
-  return this.pushEntry(id, 'employment_status_history', {
-    effective_date: input.effective_date || new Date(),
-    employment_status,
-    comment: input.comment || (input.passed ? 'Probation passed' : 'Probation not passed'),
-  });
-}
-
-async getPendingProbationReviews(): Promise<EmployeeSummary[]> {
-  const now = new Date();
-  const docs = await EmployeeModel.find({ probation_end_date: { $ne: null, $lte: now } }).lean();
-
-  const pending = docs.filter((doc: any) => {
-    const current = splitEffectiveDated(doc.employment_status_history || [], 'effective_date').current;
-    return current?.employment_status?.toLowerCase().includes('probation');
-  });
-
-  return pending.map(toSummary);
-}
-async getContractsNearingEnd(): Promise<EmployeeSummary[]> {
-  const now = new Date();
-  const weekOut = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-  const docs = await EmployeeModel.find({
-    contract_end_date: { $ne: null, $lte: weekOut },
-  }).lean();
-
-  const relevant = docs.filter((doc: any) => {
-    const status = splitEffectiveDated(doc.employment_status_history || [], 'effective_date').current;
-    // still on a contract-type status = not yet renewed/converted
-    return status?.employment_status?.toLowerCase().match(/contract|seasonal|temporary/);
-  });
-
-  return relevant.map(toSummary);
-}
- async updateJobCore(
-  id: string,
-  data: Partial<Pick<EmployeeDocument, 'hire_date' | 'job_code' | 'probation_end_date' | 'contract_end_date' | 'contracted_hours_per_week' | 'contracted_days_per_week'>>,
-): Promise<EmployeeProfile | null> {
-  if (!mongoose.Types.ObjectId.isValid(id)) return null;
-
-  if (data.hire_date && data.probation_end_date === undefined) {
-    data.probation_end_date = addMonths(data.hire_date, 4);
+    return this.pushEntry(id, "employment_status_history", {
+      effective_date: input.effective_date || new Date(),
+      employment_status,
+      comment:
+        input.comment ||
+        (input.passed ? "Probation passed" : "Probation not passed"),
+    });
   }
 
-  const doc = await EmployeeModel.findByIdAndUpdate(id, data, { new: true, runValidators: true }).lean();
-  return doc ? toProfile(doc) : null;
-}
+  async getPendingProbationReviews(): Promise<EmployeeSummary[]> {
+    const now = new Date();
+    const docs = await EmployeeModel.find({
+      probation_end_date: { $ne: null, $lte: now },
+    }).lean();
 
-  async addEmploymentStatusEntry(id: string, entry: { effective_date: Date; employment_status: string; comment?: string }) {
-    return this.pushEntry(id, 'employment_status_history', entry);
+    const pending = docs.filter((doc: any) => {
+      const current = splitEffectiveDated(
+        doc.employment_status_history || [],
+        "effective_date",
+      ).current;
+      return current?.employment_status?.toLowerCase().includes("probation");
+    });
+
+    return pending.map(toSummary);
+  }
+  async getContractsNearingEnd(): Promise<EmployeeSummary[]> {
+    const now = new Date();
+    const weekOut = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const docs = await EmployeeModel.find({
+      contract_end_date: { $ne: null, $lte: weekOut },
+    }).lean();
+
+    const relevant = docs.filter((doc: any) => {
+      const status = splitEffectiveDated(
+        doc.employment_status_history || [],
+        "effective_date",
+      ).current;
+      // still on a contract-type status = not yet renewed/converted
+      return status?.employment_status
+        ?.toLowerCase()
+        .match(/contract|seasonal|temporary/);
+    });
+
+    return relevant.map(toSummary);
+  }
+  async updateJobCore(
+    id: string,
+    data: Partial<
+      Pick<
+        EmployeeDocument,
+        | "hire_date"
+        | "job_code"
+        | "probation_end_date"
+        | "contract_end_date"
+        | "contracted_hours_per_week"
+        | "contracted_days_per_week"
+      >
+    >,
+  ): Promise<EmployeeProfile | null> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+
+    if (data.hire_date && data.probation_end_date === undefined) {
+      data.probation_end_date = addMonths(data.hire_date, 4);
+    }
+
+    const doc = await EmployeeModel.findByIdAndUpdate(id, data, {
+      new: true,
+      runValidators: true,
+    }).lean();
+    return doc ? toProfile(doc) : null;
+  }
+
+  async addEmploymentStatusEntry(
+    id: string,
+    entry: {
+      effective_date: Date;
+      employment_status: string;
+      comment?: string;
+    },
+  ) {
+    return this.pushEntry(id, "employment_status_history", entry);
   }
 
   async addCompensationEntry(
@@ -551,9 +647,9 @@ async getContractsNearingEnd(): Promise<EmployeeSummary[]> {
       comment?: string;
     },
   ) {
-    return this.pushEntry(id, 'compensation_history', {
+    return this.pushEntry(id, "compensation_history", {
       ...entry,
-      pay_rate_currency: entry.pay_rate_currency || 'XCD',
+      pay_rate_currency: entry.pay_rate_currency || "XCD",
     });
   }
 
@@ -573,7 +669,10 @@ async getContractsNearingEnd(): Promise<EmployeeSummary[]> {
       currency?: string;
     },
   ) {
-    return this.pushEntry(id, 'allowances_history', { ...entry, currency: entry.currency || 'XCD' });
+    return this.pushEntry(id, "allowances_history", {
+      ...entry,
+      currency: entry.currency || "XCD",
+    });
   }
 
   async addJobInformationEntry(
@@ -588,19 +687,28 @@ async getContractsNearingEnd(): Promise<EmployeeSummary[]> {
       reports_to?: string;
     },
   ) {
-    return this.pushEntry(id, 'job_information_history', entry);
+    return this.pushEntry(id, "job_information_history", entry);
   }
 
-  async addAirportSecurityPassEntry(id: string, entry: { issue_date: Date; expiration_date: Date; comments?: string }) {
-    return this.pushEntry(id, 'airport_security_pass_history', entry);
+  async addAirportSecurityPassEntry(
+    id: string,
+    entry: { issue_date: Date; expiration_date: Date; comments?: string },
+  ) {
+    return this.pushEntry(id, "airport_security_pass_history", entry);
   }
 
-  async addBonusEntry(id: string, entry: { date: Date; amount: number; reason?: string; comment?: string }) {
-    return this.pushEntry(id, 'bonus_history', entry);
+  async addBonusEntry(
+    id: string,
+    entry: { date: Date; amount: number; reason?: string; comment?: string },
+  ) {
+    return this.pushEntry(id, "bonus_history", entry);
   }
 
-  async addCommissionEntry(id: string, entry: { date: Date; amount: number; comment?: string }) {
-    return this.pushEntry(id, 'commission_history', entry);
+  async addCommissionEntry(
+    id: string,
+    entry: { date: Date; amount: number; comment?: string },
+  ) {
+    return this.pushEntry(id, "commission_history", entry);
   }
 
   async addEquityEntry(
@@ -617,32 +725,158 @@ async getContractsNearingEnd(): Promise<EmployeeSummary[]> {
       cliff_months?: number;
     },
   ) {
-    return this.pushEntry(id, 'equity_history', entry);
+    return this.pushEntry(id, "equity_history", entry);
   }
 
   async updatePayRates(
     id: string,
-    payRates: { daily?: number; holiday?: number; sick?: number; vacation_pay_in_lieu_rate?: number },
-  ): Promise<EmployeeProfile | null> {
-    if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    const doc = await EmployeeModel.findByIdAndUpdate(id, { pay_rates: payRates }, { new: true }).lean();
-    return doc ? toProfile(doc) : null;
-  }
-
-  async updatePotentialBonus(
-    id: string,
-    potentialBonus: { annual_percentage?: number; annual_amount?: number; annual_amount_currency?: string },
+    payRates: {
+      daily?: number;
+      holiday?: number;
+      sick?: number;
+      vacation_pay_in_lieu_rate?: number;
+    },
   ): Promise<EmployeeProfile | null> {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
     const doc = await EmployeeModel.findByIdAndUpdate(
       id,
-      { potential_bonus: { annual_amount_currency: 'XCD', ...potentialBonus } },
+      { pay_rates: payRates },
       { new: true },
     ).lean();
     return doc ? toProfile(doc) : null;
   }
 
-  private async pushEntry(id: string, field: string, entry: Record<string, any>): Promise<EmployeeProfile | null> {
+  async getAnalytics(): Promise<EmployeeAnalytics> {
+    const docs = await EmployeeModel.find().lean();
+    const now = new Date();
+
+    const total = docs.length;
+    const fullAccess = docs.filter(
+      (d: any) => d.self_service_access === "full_access",
+    ).length;
+    const noAccess = total - fullAccess;
+
+    const hiredThisMonth = docs.filter((d: any) => {
+      if (!d.hire_date) return false;
+      const hd = new Date(d.hire_date);
+      return (
+        hd.getFullYear() === now.getFullYear() &&
+        hd.getMonth() === now.getMonth()
+      );
+    }).length;
+
+    const tenures = docs
+      .filter((d: any) => d.hire_date)
+      .map((d: any) =>
+        Math.max(
+          0,
+          Math.floor(
+            (now.getTime() - new Date(d.hire_date).getTime()) /
+              (1000 * 60 * 60 * 24),
+          ),
+        ),
+      );
+    const avgTenureDays = tenures.length
+      ? Math.round(
+          tenures.reduce((s: number, t: number) => s + t, 0) / tenures.length,
+        )
+      : 0;
+
+    const deptCounts = new Map<string, number>();
+    const statusCounts = new Map<string, number>();
+    const locationCounts = new Map<string, number>();
+
+    for (const doc of docs as any[]) {
+      const currentJobInfo = splitEffectiveDated(
+        doc.job_information_history || [],
+        "effective_date",
+      ).current;
+      const currentStatus = splitEffectiveDated(
+        doc.employment_status_history || [],
+        "effective_date",
+      ).current;
+
+      const dept = currentJobInfo?.department || "Unassigned";
+      deptCounts.set(dept, (deptCounts.get(dept) ?? 0) + 1);
+
+      const status = currentStatus?.employment_status || "Unknown";
+      statusCounts.set(status, (statusCounts.get(status) ?? 0) + 1);
+
+      const location = currentJobInfo?.location || "Unassigned";
+      locationCounts.set(location, (locationCounts.get(location) ?? 0) + 1);
+    }
+
+    const byDepartment = Array.from(deptCounts, ([department, count]) => ({
+      department,
+      count,
+    })).sort((a, b) => b.count - a.count);
+    const byStatus = Array.from(statusCounts, ([status, count]) => ({
+      status,
+      count,
+    })).sort((a, b) => b.count - a.count);
+    const byLocation = Array.from(locationCounts, ([location, count]) => ({
+      location,
+      count,
+    })).sort((a, b) => b.count - a.count);
+
+    const hiringTrend: { month: string; hires: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthStart = new Date(
+        Date.UTC(now.getFullYear(), now.getMonth() - i, 1),
+      );
+      const monthEnd = new Date(
+        Date.UTC(now.getFullYear(), now.getMonth() - i + 1, 1),
+      );
+      const label = monthStart.toLocaleDateString("en-US", { month: "short" });
+      const hires = docs.filter((d: any) => {
+        if (!d.hire_date) return false;
+        const hd = new Date(d.hire_date);
+        return hd >= monthStart && hd < monthEnd;
+      }).length;
+      hiringTrend.push({ month: label, hires });
+    }
+
+    const [probationPending, contractsNearingEnd] = await Promise.all([
+      this.getPendingProbationReviews(),
+      this.getContractsNearingEnd(),
+    ]);
+
+    return {
+      total,
+      fullAccess,
+      noAccess,
+      hiredThisMonth,
+      avgTenureDays,
+      byDepartment,
+      byStatus,
+      byLocation,
+      hiringTrend,
+      probationPendingCount: probationPending.length,
+      contractsNearingEndCount: contractsNearingEnd.length,
+    };
+  }
+  async updatePotentialBonus(
+    id: string,
+    potentialBonus: {
+      annual_percentage?: number;
+      annual_amount?: number;
+      annual_amount_currency?: string;
+    },
+  ): Promise<EmployeeProfile | null> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    const doc = await EmployeeModel.findByIdAndUpdate(
+      id,
+      { potential_bonus: { annual_amount_currency: "XCD", ...potentialBonus } },
+      { new: true },
+    ).lean();
+    return doc ? toProfile(doc) : null;
+  }
+
+  private async pushEntry(
+    id: string,
+    field: string,
+    entry: Record<string, any>,
+  ): Promise<EmployeeProfile | null> {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
     const doc = await EmployeeModel.findByIdAndUpdate(
       id,
