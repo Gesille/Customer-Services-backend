@@ -109,4 +109,6 @@ employeeRouter.post(
   isAuthenticated, authorizeRoles('admin'),
   (req, res) => employeeController.resolveProbation(req, res),
 );
+employeeRouter.get('/contracts/near-end', readLimiter, isAuthenticated, authorizeRoles('admin'),
+  (req, res) => employeeController.getContractsNearingEnd(req, res));
 export default employeeRouter;

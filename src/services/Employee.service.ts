@@ -504,7 +504,21 @@ async getPendingProbationReviews(): Promise<EmployeeSummary[]> {
 
   return pending.map(toSummary);
 }
+async getContractsNearingEnd(): Promise<EmployeeSummary[]> {
+  const now = new Date();
+  const weekOut = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const docs = await EmployeeModel.find({
+    contract_end_date: { $ne: null, $lte: weekOut },
+  }).lean();
 
+  const relevant = docs.filter((doc: any) => {
+    const status = splitEffectiveDated(doc.employment_status_history || [], 'effective_date').current;
+    // still on a contract-type status = not yet renewed/converted
+    return status?.employment_status?.toLowerCase().match(/contract|seasonal|temporary/);
+  });
+
+  return relevant.map(toSummary);
+}
  async updateJobCore(
   id: string,
   data: Partial<Pick<EmployeeDocument, 'hire_date' | 'job_code' | 'probation_end_date' | 'contract_end_date' | 'contracted_hours_per_week' | 'contracted_days_per_week'>>,

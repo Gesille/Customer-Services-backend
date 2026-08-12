@@ -487,7 +487,14 @@ export class EmployeeController {
     res.status(500).json(errorResponse('Failed to record probation review', err.message));
   }
 }
-
+async getContractsNearingEnd(req: Request, res: Response): Promise<void> {
+  try {
+    const employees = await employeeService.getContractsNearingEnd();
+    res.status(200).json(successResponse('Contracts nearing end fetched', employees));
+  } catch (err: any) {
+    res.status(500).json(errorResponse('Failed to fetch contracts nearing end', err.message));
+  }
+}
 async getPendingProbationReviews(req: Request, res: Response): Promise<void> {
   try {
     const employees = await employeeService.getPendingProbationReviews();
