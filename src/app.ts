@@ -18,7 +18,6 @@ import dashboardRouter from './routes/dashboard.routes';
 
 const app = express();
 
-// Middlewares
 app.use(
   cors({
     origin: [
