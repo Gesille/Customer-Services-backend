@@ -1,7 +1,7 @@
 import { Response } from "express";
 import mongoose from "mongoose";
 import CourseModel, { ICourse } from "../models/Course.model";
-import QuestionModel, { ICourseQuestion } from "../models/CourseQuestion.model";
+import QuestionModel, { IQuestion } from "../models/CourseQuestion.model";
 import AttemptModel from "../models/Attempt.model";
 import NotificationModel from "../models/Notification.model";
 import EmailLogModel from "../models/Emaillog.model";
@@ -10,9 +10,11 @@ import sendMail from "../utils/sendMail";
 import path from "path";
 import ejs from "ejs";
 
+const slugify = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
 interface ICreateCourseInput extends Partial<ICourse> {
   questions: Array<
-    Pick<ICourseQuestion, "type" | "text" | "options" | "points" | "explanation">
+    Pick<IQuestion, "type" | "text" | "options" | "points" | "explanation">
   >;
 }
 
@@ -41,10 +43,17 @@ export const createCourseService = async (
       .session(session);
     const nextOrder = lastCourse ? lastCourse.order + 1 : 1;
 
+    const title = String(courseData.title || "next-learn-course");
+    const generatedSlug = slugify(String(courseData.slug || title)) || `course-${nextOrder}`;
+    const generatedCode = String(courseData.courseCode || `NEXT LEARN #${String(nextOrder).padStart(2, "0")}`);
+
     const [course] = await CourseModel.create(
       [
         {
           ...courseData,
+          title,
+          slug: generatedSlug,
+          courseCode: generatedCode,
           order: nextOrder,
           status: "draft",
           createdBy,
@@ -55,6 +64,10 @@ export const createCourseService = async (
 
     const questionDocs = questions.map((q, index) => ({
       ...q,
+      options: (q.options || []).map((option: any, optionIndex: number) => ({
+        ...option,
+        value: option.value || `option-${optionIndex + 1}`,
+      })),
       courseId: course._id,
       order: index + 1,
     }));
@@ -110,7 +123,10 @@ export const publishCourseService = async (
     });
   }
 
-  course.status = "published";
+    course.status = "published";
+  course.publishedAt = new Date();
+  course.updatedBy = publishedBy;
+
   await course.save();
 
   // Every active employee gets this course assigned
@@ -140,7 +156,9 @@ export const publishCourseService = async (
         assignedAt: now,
         dueAt,
         status: "not_started",
+        completionState: "not_started",
         timeLimitSeconds: course.timeLimitSeconds,
+        passingScoreSnapshot: course.passingScore,
       })),
     );
 

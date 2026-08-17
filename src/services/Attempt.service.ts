@@ -207,21 +207,28 @@ export const submitQuizService = async (
     });
 
   const percentage = totalPossibleScore > 0 ? Math.round((score / totalPossibleScore) * 100) : 0;
-  const passed = score >= course.passingScore;
+    const passingScore = attempt.passingScoreSnapshot || course.passingScore;
+  const passed = score >= passingScore;
+
   const isLate = attempt.dueAt ? now.getTime() > attempt.dueAt.getTime() : false;
   const timeTakenSeconds = Math.round((now.getTime() - attempt.quizStartedAt.getTime()) / 1000);
 
-  attempt.answers = answerRecords;
+    attempt.answers = answerRecords;
+  attempt.answeredQuestionsCount = answerRecords.length;
   attempt.score = score;
+
   attempt.totalPossibleScore = totalPossibleScore;
   attempt.totalQuestions = questions.length;
   attempt.correctAnswersCount = correctAnswersCount;
   attempt.percentage = percentage;
-  attempt.passed = passed;
+    attempt.passed = passed;
   attempt.isLate = isLate;
   attempt.completedAt = now;
+  attempt.submittedAt = now;
   attempt.timeTakenSeconds = timeTakenSeconds;
+  attempt.completionState = "completed";
   attempt.status = "completed";
+
   await attempt.save();
 
   await NotificationModel.create({
@@ -251,13 +258,74 @@ export const submitQuizService = async (
  * Admin/HR tracker: every attempt for a course, with the employee's basic
  * info populated in, sorted by most recently updated first.
  */
-export const getCourseTrackerService = async (courseId: string, res: Response) => {
-  const attempts = await AttemptModel.find({ courseId })
-    .populate("userId", "name email department employeeId")
+export const getCourseTrackerService = async (
+  courseId: string,
+  filters: { status?: string; isLate?: boolean; passed?: boolean; department?: string },
+  res: Response,
+) => {
+  const query: Record<string, unknown> = { courseId };
+  if (filters.status) query.status = filters.status;
+  if (typeof filters.isLate === "boolean") query.isLate = filters.isLate;
+  if (typeof filters.passed === "boolean") query.passed = filters.passed;
+
+  const attempts = await AttemptModel.find(query)
+    .populate({ path: "userId", select: "name email department employeeId" , match: filters.department ? { department: filters.department } : undefined })
     .sort({ updatedAt: -1 });
 
   res.status(200).json({
     success: true,
-    attempts,
+    filters,
+    attempts: filters.department ? attempts.filter((attempt) => attempt.userId) : attempts,
+  });
+};
+
+
+export const autosaveQuizAnswersService = async (
+  courseId: string,
+  userId: mongoose.Types.ObjectId,
+  submittedAnswers: Array<{ questionId: string; selectedOptionIndex?: number; timeSpentSeconds?: number }>,
+  res: Response,
+) => {
+  const attempt = await AttemptModel.findOne({ courseId, userId });
+  if (!attempt) return res.status(403).json({ success: false, message: "This course is not assigned to you" });
+  if (attempt.status === "completed" || attempt.status === "expired") {
+    return res.status(400).json({ success: false, message: "This quiz attempt is no longer active" });
+  }
+  if (!attempt.quizStartedAt || !attempt.quizExpiresAt) {
+    return res.status(400).json({ success: false, message: "Quiz has not been started" });
+  }
+  if (Date.now() >= attempt.quizExpiresAt.getTime()) {
+    attempt.status = "expired";
+    attempt.expiredAt = new Date();
+    await attempt.save();
+    return res.status(400).json({ success: false, message: "Time is up. Your attempt has expired." });
+  }
+
+  const questions = await QuestionModel.find({ courseId, isActive: true }).select("_id");
+  const validQuestionIds = new Set(questions.map((question) => question._id.toString()));
+  const now = new Date();
+  const existingByQuestion = new Map(attempt.answers.map((answer) => [answer.questionId.toString(), answer]));
+
+  for (const answer of submittedAnswers) {
+    if (!validQuestionIds.has(answer.questionId)) continue;
+    existingByQuestion.set(answer.questionId, {
+      questionId: new mongoose.Types.ObjectId(answer.questionId),
+      selectedOptionIndex: answer.selectedOptionIndex,
+      isCorrect: false,
+      pointsEarned: 0,
+      timeSpentSeconds: Math.max(0, answer.timeSpentSeconds || 0),
+      answeredAt: now,
+    });
+  }
+
+  attempt.answers = Array.from(existingByQuestion.values());
+  attempt.answeredQuestionsCount = attempt.answers.length;
+  attempt.completionState = "quiz_in_progress";
+  await attempt.save();
+
+  return res.status(200).json({
+    success: true,
+    savedAnswers: attempt.answeredQuestionsCount,
+    quizExpiresAt: attempt.quizExpiresAt,
   });
 };

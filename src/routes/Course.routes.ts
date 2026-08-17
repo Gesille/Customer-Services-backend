@@ -16,10 +16,13 @@ import {
   openCourse,
   updateVideoProgress,
   markContentViewed,
-  startQuiz,
+    startQuiz,
+  autosaveQuizAnswers,
   submitQuiz,
+
 } from "../controllers/Course.controller";
-import { getOpenComments, replyToComment, addComment, getMyCommentsForCourse, getCourseComments } from "../controllers/CourseComment.controller";
+import { getOpenComments, replyToComment, addComment, addThreadMessage, getMyCommentsForCourse, getCourseComments } from "../controllers/CourseComment.controller";
+
 import { getRatingsLeaderboard, submitRating, getMyRating, getCourseRatings } from "../controllers/CourseRating.controller";
 
 export const courseRouter = Router();
@@ -48,9 +51,12 @@ courseRouter.get("/open-course/:id", isAuthenticated, openCourse);
 courseRouter.patch("/update-video-progress/:id", isAuthenticated, updateVideoProgress);
 courseRouter.patch("/content-viewed/:id", isAuthenticated, markContentViewed);
 courseRouter.post("/start-quize/:id", isAuthenticated, startQuiz);
+courseRouter.patch("/autosave-quize/:id", isAuthenticated, autosaveQuizAnswers);
 courseRouter.post("/submit-quize/:id", isAuthenticated, submitQuiz);
+
 courseRouter.get("/comments-open", isAuthenticated, getOpenComments);
 courseRouter.patch("/comments-reply/:commentId", isAuthenticated, replyToComment);
+courseRouter.post("/comments/:commentId/messages", isAuthenticated, addThreadMessage);
 
 // ── per-course comment thread ─────────────────────────────────────────────
 courseRouter.post("/add-comments/:id", isAuthenticated, addComment);

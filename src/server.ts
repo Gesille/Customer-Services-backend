@@ -1,11 +1,14 @@
 import app from './app';
 import { ENV } from './config/env';
 import connectDB from './utils/db';
+import { startAttemptExpiryWorker } from './jobs/attempt-expiry';
 
 const PORT = Number(ENV.PORT) || 8000;
 
 connectDB().then(() => {
+  startAttemptExpiryWorker();
   app.listen(PORT, '0.0.0.0', () => {
+
     console.log(`Server running on port ${PORT}`);
     console.log(`Health check: http://localhost:${PORT}/health`);
     console.log(`API base: http://localhost:${PORT}/api`);

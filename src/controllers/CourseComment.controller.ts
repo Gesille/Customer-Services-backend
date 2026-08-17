@@ -4,7 +4,9 @@ import ErrorHandler from "../middleware/ErrorHandler";
 import { ROLES } from "../models/user.model";
 import {
   addCommentService,
-  replyToCommentService,
+    replyToCommentService,
+  addThreadMessageService,
+
   getMyCommentsForCourseService,
   getCourseCommentsService,
   getOpenCommentsService,
@@ -30,7 +32,18 @@ export const getMyCommentsForCourse = CatchAsyncError(
   },
 );
 
+export const addThreadMessage = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) return next(new ErrorHandler("Please log in", 401));
+    const text = String(req.body.text || "").trim();
+    if (!text) return next(new ErrorHandler("Message text is required", 400));
+    const authorRole = req.user.role === ROLES.ADMIN ? "admin" : "employee";
+    await addThreadMessageService(req.params.commentId as string, req.user._id, authorRole, text, res);
+  },
+);
+
 // Admin — GET /courses/:id/comments
+
 export const getCourseComments = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     if (req.user?.role !== ROLES.ADMIN) {

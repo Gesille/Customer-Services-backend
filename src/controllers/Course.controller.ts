@@ -19,8 +19,10 @@ import {
   updateVideoProgressService,
   markContentViewedService,
   startQuizService,
-  submitQuizService,
+    submitQuizService,
+  autosaveQuizAnswersService,
   getCourseTrackerService,
+
 } from "../services/Attempt.service";
 import ErrorHandler from "../middleware/ErrorHandler";
 
@@ -138,7 +140,15 @@ export const getCourseTracker = CatchAsyncError(
     if (req.user?.role !== ROLES.ADMIN) {
       return next(new ErrorHandler("Only admins can view the tracker", 403));
     }
-    await getCourseTrackerService(req.params.id as string, res);
+        const { status, isLate, passed, department } = req.query;
+    const toBoolean = (value: unknown) => value === "true" ? true : value === "false" ? false : undefined;
+    await getCourseTrackerService(req.params.id as string, {
+      status: typeof status === "string" ? status : undefined,
+      isLate: toBoolean(isLate),
+      passed: toBoolean(passed),
+      department: typeof department === "string" ? department : undefined,
+    }, res);
+
   },
 );
 
@@ -231,7 +241,8 @@ export const getMyCourses = CatchAsyncError(
   },
 );
 
-// open a course: SharePoint-style landing screen (video + key points + quiz entry)
+// open a course: internal learning screen (video + key points + quiz entry)
+
 export const openCourse = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
@@ -279,8 +290,18 @@ export const startQuiz = CatchAsyncError(
   },
 );
 
+export const autosaveQuizAnswers = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) return next(new ErrorHandler("Please log in", 401));
+    const { answers } = req.body as { answers: Array<{ questionId: string; selectedOptionIndex?: number; timeSpentSeconds?: number }> };
+    if (!Array.isArray(answers)) return next(new ErrorHandler("answers must be an array", 400));
+    await autosaveQuizAnswersService(req.params.id as string, req.user._id, answers, res);
+  },
+);
+
 // grades the quiz — server enforces the timer regardless of client state
 export const submitQuiz = CatchAsyncError(
+
   async (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return next(new ErrorHandler("Please log in", 401));
