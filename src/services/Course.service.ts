@@ -225,12 +225,26 @@ export const publishCourseService = async (
       email: `${recipient.email.slice(0, 2)}***@${recipient.email.split("@")[1] || "unknown"}`,
     });
     try {
-      await sendMail({
+      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+      const courseLink = `${frontendUrl.replace(/\/$/, "")}/courses/${course._id}`;
 
+      console.log("[COURSE_EMAIL][TEMPLATE_DATA]", {
+        emailLogId: emailLog._id.toString(),
+        template: "new-course.ejs",
+        hasTitle: Boolean(course.title),
+        hasDueAt: Boolean(dueAt),
+        courseLink,
+      });
+
+      await sendMail({
         email: recipient.email,
         subject: emailLog.subject,
         template: "new-course.ejs",
-        data: { title: course.title, dueAt: dueAt.toDateString() },
+        data: {
+          title: course.title,
+          dueAt: dueAt.toDateString(),
+          link: courseLink,
+        },
       });
 
             recipient.status = "sent";
