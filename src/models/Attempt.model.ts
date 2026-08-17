@@ -61,7 +61,7 @@ export interface IAttempt extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
-
+//
 const answerRecordSchema = new Schema<IAnswerRecord>(
   {
     questionId: { type: Schema.Types.ObjectId, ref: "CourseQuestion", required: true },
