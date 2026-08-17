@@ -57,7 +57,9 @@ const coursequestionSchema = new Schema<ICourseQuestion>(
 coursequestionSchema.index({ courseId: 1, order: 1 }, { unique: true });
 coursequestionSchema.index({ courseId: 1, isActive: 1, order: 1 });
 
-const QuestionModel: Model<ICourseQuestion> =
-  mongoose.models.Question || mongoose.model<ICourseQuestion>("CourseQuestion", coursequestionSchema);
+const CourseQuestionModel: Model<ICourseQuestion> =
+  mongoose.models.CourseQuestion ||
+  mongoose.model<ICourseQuestion>("CourseQuestion", coursequestionSchema);
 
-export default QuestionModel;
+export default CourseQuestionModel;
+
