@@ -64,7 +64,7 @@ export interface IAttempt extends Document {
 
 const answerRecordSchema = new Schema<IAnswerRecord>(
   {
-    questionId: { type: Schema.Types.ObjectId, ref: "Question", required: true },
+    questionId: { type: Schema.Types.ObjectId, ref: "CourseQuestion", required: true },
     selectedOptionIndex: { type: Number, min: 0 },
     selectedOptionValue: { type: String, trim: true },
     isCorrect: { type: Boolean, required: true, default: false },
