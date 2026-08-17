@@ -7,8 +7,6 @@ import NotificationModel from "../models/Notification.model";
 import EmailLogModel from "../models/Emaillog.model";
 import userModel, { ROLES } from "../models/user.model";
 import sendMail from "../utils/sendMail";
-import path from "path";
-import ejs from "ejs";
 
 const slugify = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
@@ -176,7 +174,7 @@ export const publishCourseService = async (
   }
 
   // Email batch — logged so failures can be retried
-  const recipients = newAttemptEmployees
+    const recipients = newAttemptEmployees
     .filter((emp) => emp.notifyByEmail)
     .map((emp) => ({
       userId: emp._id,
@@ -184,7 +182,19 @@ export const publishCourseService = async (
       status: "pending" as const,
     }));
 
-  const emailLog = await EmailLogModel.create({
+  console.log("[COURSE_EMAIL][RECIPIENTS_SELECTED]", {
+    courseId: course._id.toString(),
+    courseCode: course.courseCode,
+    assignedEmployees: newAttemptEmployees.length,
+    emailRecipients: recipients.length,
+    recipients: recipients.map((recipient) => ({
+      userId: recipient.userId.toString(),
+      email: `${recipient.email.slice(0, 2)}***@${recipient.email.split("@")[1] || "unknown"}`,
+      notifyByEmail: true,
+    })),
+  });
+
+    const emailLog = await EmailLogModel.create({
     courseId: course._id,
     subject: `New training: ${course.title}`,
     templateName: "new-course.ejs",
@@ -195,41 +205,78 @@ export const publishCourseService = async (
     startedAt: now,
   });
 
+  console.log("[COURSE_EMAIL][LOG_CREATED]", {
+    emailLogId: emailLog._id.toString(),
+    courseId: course._id.toString(),
+    totalRecipients: emailLog.totalRecipients,
+    template: emailLog.templateName,
+  });
 
+
+  // Fire emails — don't block the response on this if you have a lot of
+  // employees; for a moderate headcount this is fine to await inline.
   let sentCount = 0;
   let failedCount = 0;
 
   for (const recipient of emailLog.recipients) {
+    console.log("[COURSE_EMAIL][RECIPIENT_START]", {
+      emailLogId: emailLog._id.toString(),
+      userId: recipient.userId.toString(),
+      email: `${recipient.email.slice(0, 2)}***@${recipient.email.split("@")[1] || "unknown"}`,
+    });
     try {
-      const html = await ejs.renderFile(
-        path.join(__dirname, "../mails/new-course.ejs"),
-        { title: course.title, dueAt: dueAt.toDateString(), link: `/courses/${course._id}` },
-      );
-
       await sendMail({
+
         email: recipient.email,
         subject: emailLog.subject,
         template: "new-course.ejs",
         data: { title: course.title, dueAt: dueAt.toDateString() },
       });
 
-      recipient.status = "sent";
+            recipient.status = "sent";
       recipient.sentAt = new Date();
       sentCount++;
+      console.log("[COURSE_EMAIL][RECIPIENT_SUCCESS]", {
+        emailLogId: emailLog._id.toString(),
+        userId: recipient.userId.toString(),
+        sentCount,
+      });
     } catch (err: any) {
       recipient.status = "failed";
       recipient.error = err.message;
       failedCount++;
+      console.error("[COURSE_EMAIL][RECIPIENT_FAILED]", {
+        emailLogId: emailLog._id.toString(),
+        userId: recipient.userId.toString(),
+        email: `${recipient.email.slice(0, 2)}***@${recipient.email.split("@")[1] || "unknown"}`,
+        errorName: err?.name,
+        errorCode: err?.code,
+        errorCommand: err?.command,
+        errorResponseCode: err?.responseCode,
+        errorMessage: err?.message,
+        stack: err?.stack,
+      });
     }
+
   }
 
   emailLog.totalSent = sentCount;
   emailLog.totalFailed = failedCount;
   emailLog.status = failedCount === 0 ? "completed" : "failed";
   emailLog.completedAt = new Date();
-  await emailLog.save();
+    await emailLog.save();
+
+  console.log("[COURSE_EMAIL][BATCH_FINISHED]", {
+    emailLogId: emailLog._id.toString(),
+    courseId: course._id.toString(),
+    totalRecipients: recipients.length,
+    sentCount,
+    failedCount,
+    status: emailLog.status,
+  });
 
   res.status(200).json({
+
     success: true,
     message: `Course published. Assigned to ${newAttemptEmployees.length} employee(s), emailed ${sentCount}, failed ${failedCount}.`,
     course,

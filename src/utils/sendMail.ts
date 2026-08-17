@@ -36,20 +36,63 @@ interface EmailOptions {
 // ─── Main sendMail function ───────────────────────────────────────────────────
 const sendMail = async (options: EmailOptions): Promise<void> => {
   const { email, subject, template, data, replyTo, attachments } = options;
+  const recipients = Array.isArray(email) ? email : [email];
+  const maskedRecipients = recipients.map((value) => {
+    const [name, domain] = value.split("@");
+    return `${name?.slice(0, 2) || "***"}***@${domain || "unknown"}`;
+  });
 
   const templatePath = path.join(__dirname, "../mails", template);
-  const html = await ejs.renderFile(templatePath, data);
+  console.log("[EMAIL][START]", {
+    template,
+    templatePath,
+    subject,
+    recipients: maskedRecipients,
+    smtpHost: process.env.SMTP_HOST || "MISSING",
+    smtpPort: process.env.SMTP_PORT || "MISSING",
+    smtpUserConfigured: Boolean(process.env.SMTP_USER),
+    smtpPasswordConfigured: Boolean(process.env.SMTP_PASS),
+  });
 
-  await transporter.sendMail({
+  try {
+    console.log("[EMAIL][TEMPLATE_RENDER_START]", { templatePath });
+    const html = await ejs.renderFile(templatePath, data);
+    console.log("[EMAIL][TEMPLATE_RENDER_SUCCESS]", {
+      template,
+      htmlLength: html.length,
+    });
+
+    console.log("[EMAIL][SMTP_SEND_START]", { recipients: maskedRecipients, subject });
+    await transporter.sendMail({
+
     from:    `"Next International" <${process.env.SMTP_USER}>`,
     to:      Array.isArray(email) ? email.join(",") : email,
     subject,
     html,
     attachments,
     ...(replyTo ? { replyTo } : {}),
-  });
+    });
 
-  console.log(" Email sent to:", email);
+    console.log("[EMAIL][SMTP_SEND_SUCCESS]", {
+      recipients: maskedRecipients,
+      subject,
+      template,
+    });
+  } catch (error: any) {
+    console.error("[EMAIL][FAILED]", {
+      template,
+      templatePath,
+      recipients: maskedRecipients,
+      subject,
+      errorName: error?.name,
+      errorCode: error?.code,
+      errorCommand: error?.command,
+      errorResponseCode: error?.responseCode,
+      errorMessage: error?.message,
+      stack: error?.stack,
+    });
+    throw error;
+  }
 };
 
 export default sendMail;
