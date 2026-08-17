@@ -9,27 +9,31 @@ const emailRegexPattern: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const ROLES = {
   USER: "user",
   ADMIN: "admin",
- 
+  EMPLOYEE: "employee",
 } as const;
 
 export interface IUser extends Document {
   name: string;
   email: string;
   password: string;
-  avatar: {
+  avatar?: {
     public_id: string;
     url: string;
   };
+  department?: string;
+  employeeId?: string;
   role: string;
   isVerified: boolean;
+  isActive: boolean;
   phone?: string;
 
-  
+  notifyByEmail: boolean;
+  lastLoginAt?: Date;
   comparePassword: (password: string) => Promise<boolean>;
   SignAccessToken: () => string;
   SignRefreshToken: () => string;
   hasRole: (roles: string[]) => boolean;
-  createdAt:Date
+  createdAt: Date;
 }
 
 const userSchema: Schema<IUser> = new mongoose.Schema(
@@ -58,6 +62,12 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
       public_id: String,
       url: String,
     },
+    department: {
+      type: String,
+    },
+    employeeId: {
+      type: String,
+    },
     role: {
       type: String,
       enum: Object.values(ROLES),
@@ -67,23 +77,34 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    notifyByEmail: {
+      type: Boolean,
+      default: true,
+    },
+    lastLoginAt: {
+      type: Date,
+    },
     phone: {
       type: String,
-    }
-
-  
-   
+    },
   },
   { timestamps: true },
 );
 
-//Mash Password before saving
+userSchema.index({ department: 1 });
+userSchema.index({ role: 1 });
+
+// Hash password before saving
 userSchema.pre("save", async function (this: IUser) {
   if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 10);
 });
 
-//sign access token
+// sign access token
 userSchema.methods.SignAccessToken = function () {
   const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
   if (!accessTokenSecret) {
@@ -92,7 +113,7 @@ userSchema.methods.SignAccessToken = function () {
   return jwt.sign({ id: this._id }, accessTokenSecret, { expiresIn: "1h" });
 };
 
-//signrefresh token
+// sign refresh token
 userSchema.methods.SignRefreshToken = function () {
   const refreshTokenSecret = process.env.REFRESH_TOKEN;
   if (!refreshTokenSecret) {
@@ -101,7 +122,7 @@ userSchema.methods.SignRefreshToken = function () {
   return jwt.sign({ id: this._id }, refreshTokenSecret, { expiresIn: "3d" });
 };
 
-//compare password
+// compare password
 userSchema.methods.comparePassword = async function (
   enteredPassword: string,
 ): Promise<boolean> {
@@ -112,5 +133,7 @@ userSchema.methods.hasRole = function (roles: string[]): boolean {
   return roles.includes(this.role);
 };
 
-const userModel: Model<IUser> = mongoose.model("User", userSchema);
+const userModel: Model<IUser> =
+  mongoose.models.User || mongoose.model<IUser>("User", userSchema);
+
 export default userModel;
