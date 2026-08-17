@@ -1,7 +1,7 @@
 import { Response } from "express";
 import mongoose from "mongoose";
 import CourseModel, { ICourse } from "../models/Course.model";
-import QuestionModel, { IQuestion } from "../models/CourseQuestion.model";
+import QuestionModel, { ICourseQuestion } from "../models/CourseQuestion.model";
 import AttemptModel from "../models/Attempt.model";
 import NotificationModel from "../models/Notification.model";
 import EmailLogModel from "../models/Emaillog.model";
@@ -12,7 +12,7 @@ import ejs from "ejs";
 
 interface ICreateCourseInput extends Partial<ICourse> {
   questions: Array<
-    Pick<IQuestion, "type" | "text" | "options" | "points" | "explanation">
+    Pick<ICourseQuestion, "type" | "text" | "options" | "points" | "explanation">
   >;
 }
 

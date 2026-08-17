@@ -1,6 +1,6 @@
 import mongoose, { Document, Model, Schema, Types } from "mongoose";
 
-export type QuestionType =
+export type CourseQuestionType =
   | "multiple_choice"
   | "true_false"
   | "scenario"
@@ -11,9 +11,9 @@ export interface IOption {
   isCorrect: boolean;
 }
 
-export interface IQuestion extends Document {
+export interface ICourseQuestion extends Document {
   courseId: Types.ObjectId;
-  type: QuestionType;
+  type: CourseQuestionType;
   order: number;
   text: string;
   options: IOption[];
@@ -41,7 +41,7 @@ const optionSchema = new Schema<IOption>(
   },
 );
 
-const questionSchema = new Schema<IQuestion>(
+const coursequestionSchema = new Schema<ICourseQuestion>(
   {
     courseId: {
       type: Schema.Types.ObjectId,
@@ -113,16 +113,16 @@ const questionSchema = new Schema<IQuestion>(
   },
 );
 
-questionSchema.index(
+coursequestionSchema.index(
   { courseId: 1, order: 1 },
   { unique: true },
 );
 
-const QuestionModel: Model<IQuestion> =
+const CourseQuestionModel: Model<ICourseQuestion> =
   mongoose.models.CourseQuestion ||
-  mongoose.model<IQuestion>(
+  mongoose.model<ICourseQuestion>(
     "CourseQuestion",
-    questionSchema,
+    coursequestionSchema,
   );
 
-export default QuestionModel;
+export default CourseQuestionModel;
