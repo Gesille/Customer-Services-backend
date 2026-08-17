@@ -22,15 +22,15 @@ export interface ICourse extends Document {
   keyPoints: string[];
 
   durationMinutes: number;
-  timeLimitSeconds: number; // quiz timer, copied onto each Attempt when created
+  timeLimitSeconds: number; 
 
   passingScore: number;
 
   status: CourseStatus;
+avgCourseRating?: number;
+avgQuizRating?: number;
+ratingCount?: number;
 
-  // Default due window: when a course is published, every Attempt created for
-  // it gets dueAt = publishedAt + dueInDays (see course.controller). You can
-  // also override the due date per-user later if needed.
   dueInDays: number;
 
   sharepointUrl?: string;
@@ -75,7 +75,25 @@ const courseSchema = new Schema<ICourse>(
       trim: true,
       index: true,
     },
+ avgCourseRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
 
+    avgQuizRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
+
+    ratingCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     heroImage: {
       public_id: String,
       url: String,

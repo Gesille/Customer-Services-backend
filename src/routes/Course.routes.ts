@@ -20,6 +20,7 @@ import {
   submitQuiz,
 } from "../controllers/Course.controller";
 import { getOpenComments, replyToComment, addComment, getMyCommentsForCourse, getCourseComments } from "../controllers/CourseComment.controller";
+import { getRatingsLeaderboard, submitRating, getMyRating, getCourseRatings } from "../controllers/CourseRating.controller";
 
 export const courseRouter = Router();
 
@@ -55,4 +56,11 @@ courseRouter.patch("/comments/:commentId/reply", isAuthenticated, replyToComment
 courseRouter.post("/:id/comments", isAuthenticated, addComment);
 courseRouter.get("/:id/comments/me", isAuthenticated, getMyCommentsForCourse);
 courseRouter.get("/:id/comments", isAuthenticated, getCourseComments);
+
+courseRouter.get("/ratings/leaderboard", isAuthenticated, getRatingsLeaderboard);
+
+// ── per-course rating ──
+courseRouter.post("/:id/rating", isAuthenticated, submitRating);
+courseRouter.get("/:id/rating/me", isAuthenticated, getMyRating);
+courseRouter.get("/:id/ratings", isAuthenticated, getCourseRatings);
 export default courseRouter;
