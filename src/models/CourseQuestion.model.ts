@@ -29,6 +29,7 @@ const optionSchema = new Schema<IOption>(
       required: true,
       trim: true,
     },
+
     isCorrect: {
       type: Boolean,
       required: true,
@@ -51,7 +52,12 @@ const questionSchema = new Schema<IQuestion>(
 
     type: {
       type: String,
-      enum: ["multiple_choice", "true_false", "scenario", "bonus"],
+      enum: [
+        "multiple_choice",
+        "true_false",
+        "scenario",
+        "bonus",
+      ],
       required: true,
     },
 
@@ -70,11 +76,18 @@ const questionSchema = new Schema<IQuestion>(
     options: {
       type: [optionSchema],
       required: true,
+
       validate: {
         validator: function (options: IOption[]) {
-          return options.length > 0 && options.some((option) => option.isCorrect);
+          return (
+            Array.isArray(options) &&
+            options.length > 0 &&
+            options.some((option) => option.isCorrect === true)
+          );
         },
-        message: "Question must have at least one correct option",
+
+        message:
+          "Question must have at least one correct option",
       },
     },
 
@@ -94,14 +107,22 @@ const questionSchema = new Schema<IQuestion>(
       default: true,
     },
   },
+
   {
     timestamps: true,
   },
 );
 
-questionSchema.index({ courseId: 1, order: 1 }, { unique: true });
+questionSchema.index(
+  { courseId: 1, order: 1 },
+  { unique: true },
+);
 
 const QuestionModel: Model<IQuestion> =
-  mongoose.models.Question || mongoose.model<IQuestion>("Question", questionSchema);
+  mongoose.models.CourseQuestion ||
+  mongoose.model<IQuestion>(
+    "CourseQuestion",
+    questionSchema,
+  );
 
 export default QuestionModel;
