@@ -12,6 +12,8 @@ import appRoute from './routes/applicant.routes';
 import contactRouter from './routes/Contact.routes';
 import questionsRouter from './routes/Question.routes';
 import dashboardRouter from './routes/dashboard.routes';
+import courseRouter from './routes/Course.routes';
+import notificationRouter from './routes/Notification.routes';
 
 
 
@@ -51,7 +53,8 @@ app.use('/api/v1',appRoute)
 app.use('/api/v1',contactRouter)
 app.use('/api/v1',questionsRouter)
 app.use('/api/v1',dashboardRouter)
-
+app.use('/api/v1', courseRouter);
+app.use('/api/v1', notificationRouter);
 
 //unknoun route
 app.all("*", (req:Request , res:Response , next:NextFunction) =>{
