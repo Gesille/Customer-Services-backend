@@ -195,8 +195,7 @@ export const publishCourseService = async (
     startedAt: now,
   });
 
-  // Fire emails — don't block the response on this if you have a lot of
-  // employees; for a moderate headcount this is fine to await inline.
+
   let sentCount = 0;
   let failedCount = 0;
 
