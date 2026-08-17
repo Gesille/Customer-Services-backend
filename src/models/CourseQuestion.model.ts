@@ -29,7 +29,6 @@ const optionSchema = new Schema<IOption>(
       required: true,
       trim: true,
     },
-
     isCorrect: {
       type: Boolean,
       required: true,
@@ -52,12 +51,7 @@ const coursequestionSchema = new Schema<ICourseQuestion>(
 
     type: {
       type: String,
-      enum: [
-        "multiple_choice",
-        "true_false",
-        "scenario",
-        "bonus",
-      ],
+      enum: ["multiple_choice", "true_false", "scenario", "bonus"],
       required: true,
     },
 
@@ -76,18 +70,11 @@ const coursequestionSchema = new Schema<ICourseQuestion>(
     options: {
       type: [optionSchema],
       required: true,
-
       validate: {
         validator: function (options: IOption[]) {
-          return (
-            Array.isArray(options) &&
-            options.length > 0 &&
-            options.some((option) => option.isCorrect === true)
-          );
+          return options.length > 0 && options.some((option) => option.isCorrect);
         },
-
-        message:
-          "Question must have at least one correct option",
+        message: "Question must have at least one correct option",
       },
     },
 
@@ -107,22 +94,14 @@ const coursequestionSchema = new Schema<ICourseQuestion>(
       default: true,
     },
   },
-
   {
     timestamps: true,
   },
 );
 
-coursequestionSchema.index(
-  { courseId: 1, order: 1 },
-  { unique: true },
-);
+coursequestionSchema.index({ courseId: 1, order: 1 }, { unique: true });
 
 const CourseQuestionModel: Model<ICourseQuestion> =
-  mongoose.models.CourseQuestion ||
-  mongoose.model<ICourseQuestion>(
-    "CourseQuestion",
-    coursequestionSchema,
-  );
+  mongoose.models.Question || mongoose.model<ICourseQuestion>("Question", coursequestionSchema);
 
 export default CourseQuestionModel;
