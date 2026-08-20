@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import { Response } from "express";
-import CourseCommentModel from "../models/CourseComment.model";
+import CourseCommentModel, { ICommentAttachment } from "../models/CourseComment.model";
 import CourseModel from "../models/Course.model";
 import AttemptModel from "../models/Attempt.model";
 import NotificationModel from "../models/Notification.model";
@@ -11,6 +11,7 @@ export const addCommentService = async (
   userId: mongoose.Types.ObjectId,
   text: string,
   res: Response,
+  attachment?: ICommentAttachment, // NEW
 ) => {
   const course = await CourseModel.findById(courseId);
   if (!course) return res.status(404).json({ success: false, message: "Course not found" });
@@ -23,7 +24,7 @@ export const addCommentService = async (
     courseId,
     userId,
     attemptId: attempt._id,
-    messages: [{ text, authorId: userId, authorRole: "employee", createdAt: now, isEdited: false }],
+    messages: [{ text, authorId: userId, authorRole: "employee", attachment, createdAt: now, isEdited: false }],
     lastMessageAt: now,
     lastMessageBy: userId,
     status: "open",
@@ -51,6 +52,7 @@ export const replyToCommentService = async (
   adminId: mongoose.Types.ObjectId,
   text: string,
   res: Response,
+  attachment?: ICommentAttachment, // NEW
 ) => {
   const comment = await CourseCommentModel.findById(commentId);
   if (!comment) return res.status(404).json({ success: false, message: "Comment not found" });
@@ -60,6 +62,7 @@ export const replyToCommentService = async (
     text,
     authorId: adminId,
     authorRole: "admin",
+    attachment,
     createdAt: now,
     isEdited: false,
   } as never);
@@ -86,12 +89,13 @@ export const addThreadMessageService = async (
   authorRole: "employee" | "admin" | "manager" | "system",
   text: string,
   res: Response,
+  attachment?: ICommentAttachment, // NEW
 ) => {
   const comment = await CourseCommentModel.findById(commentId);
   if (!comment) return res.status(404).json({ success: false, message: "Comment thread not found" });
 
   const now = new Date();
-  comment.messages.push({ text, authorId, authorRole, createdAt: now, isEdited: false } as never);
+  comment.messages.push({ text, authorId, authorRole, attachment, createdAt: now, isEdited: false } as never);
   comment.status = authorRole === "employee" ? "open" : "answered";
   comment.lastMessageAt = now;
   comment.lastMessageBy = authorId;

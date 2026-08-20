@@ -8,6 +8,9 @@ import EmailLogModel from "../models/Emaillog.model";
 import userModel, { ROLES } from "../models/user.model";
 import sendMail from "../utils/sendMail";
 
+import { bufferToDataUri } from "../middleware/upload";
+import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary";
+
 const slugify = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 interface ICreateCourseInput extends Partial<ICourse> {
@@ -87,6 +90,33 @@ export const createCourseService = async (
   }
 };
 
+
+// NEW — replace a draft course's hero image. Deletes the old Cloudinary
+// asset (if any) so drafts don't accumulate orphaned uploads while an
+// admin is iterating on the image.
+export const updateCourseHeroImageService = async (
+  course: ICourse,
+  file: Express.Multer.File,
+  res: Response,
+) => {
+  const previousPublicId = course.heroImage?.public_id;
+
+  const uploaded = await uploadToCloudinary(bufferToDataUri(file), "course-hero-images", "image");
+
+  course.heroImage = {
+    public_id: uploaded.public_id,
+    url: uploaded.secure_url,
+    altText: course.title,
+  };
+  await course.save();
+
+  if (previousPublicId) {
+    // best-effort cleanup — don't fail the request if this errors
+    deleteFromCloudinary(previousPublicId, "image").catch(() => undefined);
+  }
+
+  res.status(200).json({ success: true, course });
+};
 
 export const publishCourseService = async (
   courseId: string,

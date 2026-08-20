@@ -2,11 +2,20 @@ import mongoose, { Document, Model, Schema, Types } from "mongoose";
 
 export type CourseCommentStatus = "open" | "answered" | "resolved" | "hidden";
 
+// NEW — lets a comment/reply carry one photo or short video, uploaded via
+// Cloudinary (see utils/cloudinary.ts + middleware/upload.ts).
+export interface ICommentAttachment {
+  public_id: string;
+  url: string;
+  resourceType: "image" | "video";
+}
+
 export interface ICommentMessage {
   _id?: Types.ObjectId;
   text: string;
   authorId: Types.ObjectId;
   authorRole: "employee" | "admin" | "manager" | "system";
+  attachment?: ICommentAttachment; // NEW
   createdAt: Date;
   editedAt?: Date;
   isEdited: boolean;
@@ -28,6 +37,15 @@ export interface ICourseComment extends Document {
   updatedAt: Date;
 }
 
+const commentAttachmentSchema = new Schema<ICommentAttachment>(
+  {
+    public_id: { type: String, required: true, trim: true },
+    url: { type: String, required: true, trim: true },
+    resourceType: { type: String, enum: ["image", "video"], required: true },
+  },
+  { _id: false },
+);
+
 const commentMessageSchema = new Schema<ICommentMessage>(
   {
     text: { type: String, required: true, trim: true, maxlength: 2000 },
@@ -37,6 +55,7 @@ const commentMessageSchema = new Schema<ICommentMessage>(
       enum: ["employee", "admin", "manager", "system"],
       required: true,
     },
+    attachment: commentAttachmentSchema, // NEW
     editedAt: Date,
     isEdited: { type: Boolean, default: false },
   },

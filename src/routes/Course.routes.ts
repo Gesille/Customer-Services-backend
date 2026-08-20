@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { isAuthenticated } from "../middleware/auth";
+import { authorizeRoles, isAuthenticated } from "../middleware/auth";
 import {
   createCourse,
   getCourseById,
@@ -19,11 +19,13 @@ import {
     startQuiz,
   autosaveQuizAnswers,
   submitQuiz,
+  uploadCourseHeroImage,
 
 } from "../controllers/Course.controller";
 import { getOpenComments, replyToComment, addComment, addThreadMessage, getMyCommentsForCourse, getCourseComments } from "../controllers/CourseComment.controller";
 
 import { getRatingsLeaderboard, submitRating, getMyRating, getCourseRatings } from "../controllers/CourseRating.controller";
+import { uploadSingleAttachment, uploadSingleImage } from "../middleware/upload";
 
 export const courseRouter = Router();
 
@@ -40,7 +42,12 @@ courseRouter.patch("/publish-course/:id", isAuthenticated, publishCourse);
 courseRouter.patch("/archive-course/:id", isAuthenticated, archiveCourse);
 courseRouter.get("/analytics-course/:id", isAuthenticated, getCourseAnalytics);
 courseRouter.get("/tracker-course/:id", isAuthenticated, getCourseTracker);
-
+courseRouter.post(
+  "/:id/hero-image",
+  isAuthenticated,
+  uploadSingleImage,
+  uploadCourseHeroImage,
+);
 // ── Admin — quiz question management (draft courses only) ────────────────
 courseRouter.post("/add-questions/:courseId", isAuthenticated, addQuestion);
 courseRouter.put("/update-questions/:id", isAuthenticated, updateQuestion);
@@ -62,7 +69,9 @@ courseRouter.post("/comments/:commentId/messages", isAuthenticated, addThreadMes
 courseRouter.post("/add-comments/:id", isAuthenticated, addComment);
 courseRouter.get("/get-mycomment/:id", isAuthenticated, getMyCommentsForCourse);
 courseRouter.get("/get-course-comment/:id", isAuthenticated, getCourseComments);
-
+courseRouter.post("/:id/comments", isAuthenticated, uploadSingleAttachment, addComment);
+courseRouter.post("/comments/:commentId/messages", isAuthenticated, uploadSingleAttachment, addThreadMessage);
+courseRouter.patch("/comments/:commentId/reply", isAuthenticated, authorizeRoles("admin"), uploadSingleAttachment, replyToComment);
 courseRouter.get("/ratings-leaderboard", isAuthenticated, getRatingsLeaderboard);
 
 // ── per-course rating ──

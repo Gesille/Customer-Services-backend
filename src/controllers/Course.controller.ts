@@ -12,6 +12,8 @@ import {
   getAllCoursesService,
   getMyCoursesService,
   getCourseAnalyticsService,
+  updateCourseHeroImageService,
+
 } from "../services/Course.service";
 
 import {
@@ -79,6 +81,29 @@ export const updateCourse = CatchAsyncError(
     const updated = await CourseModel.findByIdAndUpdate(course._id, { $set: safeUpdates }, { new: true });
 
     res.status(200).json({ success: true, course: updated });
+  },
+);
+
+// NEW — upload/replace a course's hero image via Cloudinary. Draft-only,
+// same rule as updateCourse, so a published course's snapshot can't drift.
+export const uploadCourseHeroImage = CatchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    if (req.user?.role !== ROLES.ADMIN) {
+      return next(new ErrorHandler("Only admins can edit courses", 403));
+    }
+    if (!req.file) {
+      return next(new ErrorHandler("An image file is required", 400));
+    }
+
+    const course = await CourseModel.findById(req.params.id);
+    if (!course) {
+      return next(new ErrorHandler("Course not found", 404));
+    }
+    if (course.status !== "draft") {
+      return next(new ErrorHandler("Only draft courses can be edited. Archive this one and create a new version instead.", 400));
+    }
+
+    await updateCourseHeroImageService(course, req.file, res);
   },
 );
 
@@ -318,4 +343,3 @@ export const submitQuiz = CatchAsyncError(
     await submitQuizService(req.params.id as string, req.user._id, answers, res);
   },
 );
-
