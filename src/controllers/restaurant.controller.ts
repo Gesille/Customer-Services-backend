@@ -25,7 +25,7 @@ export class RestaurantController {
       res.status(500).json(errorResponse('Failed to fetch restaurants without QR', err.message));
     }
   }
-
+//
   async getById(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
